@@ -1,6 +1,13 @@
 # Dependencies, including nested folders
 node_modules/
 
+# Node.js and NestJS generated files
+dist/
+.nestjs/
+*.tsbuildinfo
+.eslintcache
+*.tgz
+
 # Environment files
 .env
 .env.*
@@ -27,15 +34,17 @@ crash.*.log
 # Private keys
 *.pem
 *.key
-*.pub
 /infrastructure/infrakey
 
-# Build output and test coverage
-dist/
+# Test coverage
 coverage/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Operating system files
 .DS_Store
