@@ -1,0 +1,42 @@
+# Dependencies, including nested folders
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Terraform variable files
+*.tfvars
+*.tfvars.json
+
+# Terraform working directory
+.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Terraform crash logs
+crash.log
+crash.*.log
+
+# Terraform plan files
+*.tfplan
+
+# Private keys
+*.pem
+*.key
+*.pub
+/infrastructure/infrakey
+
+# Build output and test coverage
+dist/
+coverage/
+
+# Logs
+*.log
+
+# Operating system files
+.DS_Store
+Thumbs.db
