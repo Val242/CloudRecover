@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform } from "class-transformer";
 import {
   IsInt,
   IsString,
@@ -8,11 +8,11 @@ import {
   Min,
   MinLength,
   ValidateIf,
-} from 'class-validator';
+} from "class-validator";
 
 export class CreateProductDto {
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
+    typeof value === "string" ? value.trim().toUpperCase() : value,
   )
   @IsString()
   @MinLength(1)
@@ -21,7 +21,7 @@ export class CreateProductDto {
   sku!: string;
 
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === "string" ? value.trim() : value,
   )
   @IsString()
   @MinLength(1)

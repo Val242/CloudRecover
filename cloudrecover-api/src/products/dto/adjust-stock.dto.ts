@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform } from "class-transformer";
 import {
   IsInt,
   IsString,
@@ -7,7 +7,7 @@ import {
   Min,
   MinLength,
   NotEquals,
-} from 'class-validator';
+} from "class-validator";
 
 export class AdjustStockDto {
   @IsInt()
@@ -17,7 +17,7 @@ export class AdjustStockDto {
   change!: number;
 
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
+    typeof value === "string" ? value.trim() : value,
   )
   @IsString()
   @MinLength(1)

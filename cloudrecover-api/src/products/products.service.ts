@@ -3,20 +3,18 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
-import { Prisma } from '@prisma/client';
-import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
-import { AdjustStockDto } from './dto/adjust-stock.dto';
+} from "@nestjs/common";
+import { DatabaseService } from "../database/database.service";
+import { Prisma } from "@prisma/client";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
+import { AdjustStockDto } from "./dto/adjust-stock.dto";
 
 const MAX_QUANTITY = 2_147_483_647;
 
 @Injectable()
 export class ProductsService {
-  constructor(
-    private readonly databaseService: DatabaseService,
-  ) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async create(dto: CreateProductDto) {
     const quantity = dto.quantity ?? 0;
@@ -33,7 +31,7 @@ export class ProductsService {
               ? {
                   create: {
                     change: quantity,
-                    reason: 'Opening stock',
+                    reason: "Opening stock",
                   },
                 }
               : undefined,
@@ -49,10 +47,7 @@ export class ProductsService {
       where: {
         deletedAt: null,
       },
-      orderBy: [
-        { createdAt: 'desc' },
-        { id: 'asc' },
-      ],
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     });
   }
 
@@ -109,9 +104,7 @@ export class ProductsService {
     const minimumQuantity = dto.change < 0 ? -dto.change : 0;
 
     const maximumQuantity =
-      dto.change > 0
-        ? MAX_QUANTITY - dto.change
-        : MAX_QUANTITY;
+      dto.change > 0 ? MAX_QUANTITY - dto.change : MAX_QUANTITY;
 
     return this.databaseService.$transaction(
       async (transaction) => {
@@ -140,13 +133,11 @@ export class ProductsService {
           });
 
           if (!product) {
-            throw new NotFoundException(
-              `Product ${id} was not found`,
-            );
+            throw new NotFoundException(`Product ${id} was not found`);
           }
 
           throw new BadRequestException(
-            'Adjustment would produce negative stock or exceed the quantity limit',
+            "Adjustment would produce negative stock or exceed the quantity limit",
           );
         }
 
@@ -180,27 +171,19 @@ export class ProductsService {
       where: {
         productId: id,
       },
-      orderBy: [
-        { createdAt: 'desc' },
-        { id: 'asc' },
-      ],
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     });
   }
 
-  private handleDatabaseError(
-    error: unknown,
-    id?: string,
-  ): never {
+  private handleDatabaseError(error: unknown, id?: string): never {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2002') {
-        throw new ConflictException(
-          'A product with this SKU already exists',
-        );
+      if (error.code === "P2002") {
+        throw new ConflictException("A product with this SKU already exists");
       }
 
-      if (error.code === 'P2025') {
+      if (error.code === "P2025") {
         throw new NotFoundException(
-          id ? `Product ${id} was not found` : 'Product was not found',
+          id ? `Product ${id} was not found` : "Product was not found",
         );
       }
     }
