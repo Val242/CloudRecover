@@ -1,5 +1,5 @@
 # Dependencies, including nested folders
-node_modules/
+cloudrecover-api/node_modules
 
 # Node.js and NestJS generated files
 dist/
