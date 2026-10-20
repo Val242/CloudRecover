@@ -37,11 +37,11 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 
 ## Phase 3 — Primary AWS Infrastructure
 
-- [ ] Finalize the primary-region architecture.
-- [ ] Define the VPC CIDR and subnet allocation.
-- [ ] Select Availability Zones and distribute subnets appropriately.
-- [ ] Configure public and private route tables.
-- [ ] Configure the Internet Gateway and NAT Gateway.
+- [x] Finalize the primary-region architecture.
+- [x] Define the VPC CIDR and subnet allocation.
+- [x] Select Availability Zones and distribute subnets appropriately.
+- [x] Configure public and private route tables.
+- [x] Configure the Internet Gateway and NAT Gateway.
 - [ ] Configure the bastion host and restricted administrative access.
 - [ ] Configure security groups and IAM permissions.
 - [ ] Provision the internal Application Load Balancer.

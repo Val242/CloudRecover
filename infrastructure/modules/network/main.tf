@@ -12,7 +12,7 @@ resource "aws_subnet" "cloud-recover-pub-1" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.public_subnet_1_cidr
   map_public_ip_on_launch = true
-  availability_zone       = var.ZONE1
+  availability_zone       = var.availability_zone_1
   tags = {
     Name = var.public_subnet_1_name
   }
@@ -22,7 +22,7 @@ resource "aws_subnet" "cloud-recover-pub-2" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.public_subnet_2_cidr
   map_public_ip_on_launch = true
-  availability_zone       = var.ZONE2
+  availability_zone       = var.availability_zone_2
   tags = {
     Name = var.public_subnet_2_name
   }
@@ -32,7 +32,7 @@ resource "aws_subnet" "cloud-recover-app-1" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.app_subnet_1_cidr
   map_public_ip_on_launch = "false"
-  availability_zone       = var.ZONE1
+  availability_zone       = var.availability_zone_1
   tags = {
     Name = var.app_subnet_1_name
   }
@@ -42,7 +42,7 @@ resource "aws_subnet" "cloud-recover-app-2" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.app_subnet_2_cidr
   map_public_ip_on_launch = true
-  availability_zone       = var.ZONE2
+  availability_zone       = var.availability_zone_2
   tags = {
     Name = var.app_subnet_2_name
   }
@@ -52,7 +52,7 @@ resource "aws_subnet" "cloud-recover-monitoring-1" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.monitoring_subnet_1_cidr
   map_public_ip_on_launch = true
-  availability_zone       = var.ZONE1
+  availability_zone       = var.availability_zone_1
   tags = {
     Name = var.monitoring_subnet_1_name
   }
@@ -62,7 +62,7 @@ resource "aws_subnet" "cloud-recover-monitoring-2" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.monitoring_subnet_2_cidr
   map_public_ip_on_launch = true
-  availability_zone       = var.ZONE2
+  availability_zone       = var.availability_zone_2
   tags = {
     Name = var.monitoring_subnet_2_name
   }
@@ -72,7 +72,7 @@ resource "aws_subnet" "cloud-recover-database_subnet-1" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.database_subnet_1_cidr
   map_public_ip_on_launch = false
-  availability_zone       = var.ZONE1
+  availability_zone       = var.availability_zone_1
   tags = {
     Name = var.database_subnet_1_name
   }
@@ -83,7 +83,7 @@ resource "aws_subnet" "cloud-recover-database_subnet-2" {
   vpc_id                  = aws_vpc.cloud-recover.id
   cidr_block              = var.database_subnet_2_cidr
   map_public_ip_on_launch = false
-  availability_zone       = var.ZONE2
+  availability_zone       = var.availability_zone_2
   tags = {
     Name = var.database_subnet_2_name
   }
