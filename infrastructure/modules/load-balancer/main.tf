@@ -52,7 +52,10 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_target_group_attachment" "app" {
-  for_each = toset(var.instance_ids)
+    for_each = {
+    for index, instance_id in var.instance_ids :
+    tostring(index) => instance_id
+  }
 
   target_group_arn = aws_lb_target_group.app_tg.arn
   target_id        = each.value
