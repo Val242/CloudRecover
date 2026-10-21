@@ -36,6 +36,7 @@ crash.*.log
 *.key
 *.pub
 /infrastructure/primary/cloudrecover-bastion
+/infrastructure/primary/cloudrecoveryV2
 
 # Test coverage
 coverage/
