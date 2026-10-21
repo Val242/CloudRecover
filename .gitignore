@@ -34,7 +34,7 @@ crash.*.log
 # Private keys
 *.pem
 *.key
-/infrastructure/infrakey
+*.pub
 
 # Test coverage
 coverage/
