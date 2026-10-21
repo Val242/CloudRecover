@@ -8,3 +8,8 @@ resource "aws_instance"  "prometheus-server"  {
     Name = var.instance_name
   }
 }
+
+resource "aws_ec2_instance_state" "prometheus-server-state" {
+  instance_id = aws_instance.prometheus-server.id
+  state       = "running"
+}

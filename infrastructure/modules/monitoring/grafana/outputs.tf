@@ -7,3 +7,9 @@ variable "grafana_security_group_id" {
   description = "ID of the Prometheus security group from the security module"
   type        = string
 }
+
+output "grafana_server_state" {
+  description = "State of the grafana server"
+  value = aws_ec2_instance_state.grafana-server-state.state
+}
+

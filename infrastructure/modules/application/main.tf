@@ -12,3 +12,8 @@ resource "aws_instance"  "app-server"  {
     Name = var.instance_name
   }
 }
+
+resource "aws_ec2_instance_state" "app-server-state" {
+  instance_id = aws_instance.app-server.id
+  state       = "running"
+}

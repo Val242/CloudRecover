@@ -7,3 +7,8 @@ resource "aws_instance"  "grafana-server"  {
     Name = var.instance_name
   }
 }
+
+resource "aws_ec2_instance_state" "grafana-server-state" {
+  instance_id = aws_instance.grafana-server.id
+  state       = "running"
+}
