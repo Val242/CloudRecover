@@ -19,6 +19,11 @@ variable "instance_name" {
    default = "cloud-recover-api"
 }
 
+variable "app_server_security_group_id" {
+  description = "ID of the Prometheus security group from the security module"
+  type        = string
+}
+
 
 # resource "aws_instance"  "this"  {
 #   ami           = var.ami_id

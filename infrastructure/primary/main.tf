@@ -96,6 +96,7 @@ module "app_server" {
   ami_id        = var.ami_id
   instance_type = var.app_instance_type
   subnet_id     = module.vpc.app_subnet_az1_id
+  app_server_security_group_id = module.security_groups.web_security_group_id
 
   # Add the application security group input required by your module.
   # For example:
@@ -132,3 +133,4 @@ module "database" {
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
 }
+
