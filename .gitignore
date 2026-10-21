@@ -37,6 +37,7 @@ crash.*.log
 *.pub
 /infrastructure/primary/cloudrecover-bastion
 /infrastructure/primary/cloudrecoveryV2
+/infrastructure/primary/cloudrecover-private-servers
 
 # Test coverage
 coverage/
