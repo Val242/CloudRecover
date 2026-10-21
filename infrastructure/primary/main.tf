@@ -89,6 +89,16 @@ module "load_balancer" {
   alb_security_group_id = module.security_groups.alb_security_group_id
 }
 
+module "bastion" {
+  source = "../modules/bastion-host"
+  subnet_id = module.vpc.public_subnet_az1_id
+  bastion_security_group_id = module.security_groups.bastion_security_group_id
+  instance_type = var.app_instance_type
+  instance_name = "Bastion Host"
+  ami_id = var.ami_id
+  
+}
+
 module "app_server" {
   source = "../modules/application"
 

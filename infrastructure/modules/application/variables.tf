@@ -20,7 +20,7 @@ variable "instance_name" {
 }
 
 variable "app_server_security_group_id" {
-  description = "ID of the Prometheus security group from the security module"
+  description = "ID of the app server security group from the security module"
   type        = string
 }
 

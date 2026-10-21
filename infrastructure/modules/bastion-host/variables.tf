@@ -18,3 +18,8 @@ variable "instance_name" {
   type        = string
   default     = "cloud-recover-bastion"
 }
+
+variable "bastion_security_group_id" {
+  description = "ID of the app server security group from the security module"
+  type        = string
+}
