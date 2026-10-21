@@ -13,13 +13,13 @@ resource "aws_security_group" "web" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "web_ssh_from_my_ip" {
+resource "aws_vpc_security_group_ingress_rule" "web_ssh_from_bastion_host" {
   security_group_id = aws_security_group.web.id
-  cidr_ipv4         = var.my_ip
+  referenced_security_group_id = aws_security_group.bastion.id
   from_port         = 22
   ip_protocol       = "tcp"
   to_port           = 22
-  description       = "SSH access from the administrator IP"
+  description       = "SSH access from the Bastion IP"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_node_exporter_from_prometheus" {
@@ -110,7 +110,6 @@ resource "aws_security_group" "bastion" {
 resource "aws_vpc_security_group_ingress_rule" "bastion_ssh" {
   security_group_id = aws_security_group.bastion.id
   description       = "SSH access from administrator IP"
-  
   cidr_ipv4   = var.my_ip
   from_port   = 22
   to_port     = 22
@@ -139,13 +138,13 @@ resource "aws_security_group" "prometheus" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "prometheus_ssh_from_my_ip" {
+resource "aws_vpc_security_group_ingress_rule" "prometheus_ssh_from_bastion_host" {
   security_group_id = aws_security_group.prometheus.id
-  cidr_ipv4         = var.my_ip
+  referenced_security_group_id = aws_security_group.bastion.id
   from_port         = 22
   ip_protocol       = "tcp"
   to_port           = 22
-  description       = "SSH access from the administrator IP"
+  description       = "SSH access from the Bastion Host"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "prometheus_ui_from_my_ip" {
@@ -195,13 +194,13 @@ resource "aws_security_group" "grafana" {
   }
 }
 
-resource "aws_vpc_security_group_ingress_rule" "grafana_ssh_from_my_ip" {
+resource "aws_vpc_security_group_ingress_rule" "grafana_ssh_from_bastion_host" {
   security_group_id = aws_security_group.grafana.id
-  cidr_ipv4         = var.my_ip
+  referenced_security_group_id = aws_security_group.bastion.id
   from_port         = 22
   ip_protocol       = "tcp"
   to_port           = 22
-  description       = "SSH access from the administrator IP"
+  description       = "SSH access from the Bastion"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "grafana_ui_from_my_ip" {
