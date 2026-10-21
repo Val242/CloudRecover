@@ -275,6 +275,20 @@ variable "monitoring_instance_type" {
 }
 
 # ==========================================
+# Bastion EC2 Configuration
+# ==========================================
+
+variable "key_name" {
+  description = "Name of the SSH key pair for the bastion host"
+  type        = string
+}
+
+variable "public_key_path" {
+  description = "Path to the SSH public key file for the bastion host"
+  type        = string
+}
+
+# ==========================================
 # RDS Database Credentials
 # ==========================================
 

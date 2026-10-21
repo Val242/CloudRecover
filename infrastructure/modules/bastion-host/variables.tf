@@ -23,3 +23,23 @@ variable "bastion_security_group_id" {
   description = "ID of the app server security group from the security module"
   type        = string
 }
+
+variable "key_name" {
+  description = "Name of the SSH key pair for the bastion host"
+  type        = string
+}
+
+variable "project" {
+  description = "Project name used for resource tagging"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment used for resource tagging"
+  type        = string
+}
+
+variable "public_key_path" {
+  description = "Path to the SSH public key file"
+  type        = string
+}

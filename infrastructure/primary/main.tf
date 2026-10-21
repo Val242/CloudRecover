@@ -96,7 +96,10 @@ module "bastion" {
   instance_type = var.app_instance_type
   instance_name = "Bastion Host"
   ami_id = var.ami_id
-  
+  key_name = var.key_name
+  project = var.project
+  environment = var.environment
+  public_key_path = var.public_key_path
 }
 
 module "app_server" {
@@ -143,4 +146,3 @@ module "database" {
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
 }
-
