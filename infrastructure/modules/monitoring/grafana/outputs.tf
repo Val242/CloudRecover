@@ -13,3 +13,7 @@ output "grafana_server_state" {
   value = aws_ec2_instance_state.grafana-server-state.state
 }
 
+output "grafana_server_key_pair_name" {
+  description = "Name of the Grafana server SSH key pair"
+  value       = aws_key_pair.cloudrecover-private-server.key_name
+}

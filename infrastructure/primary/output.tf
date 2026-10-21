@@ -8,6 +8,21 @@ output "application_instance_ids" {
   value       = module.app_server.app_server_instance_id
 }
 
+output "application_key_pair_name" {
+  description = "Name of the application server SSH key pair"
+  value       = module.app_server.app_server_key_pair_name
+}
+
+output "prometheus_key_pair_name" {
+  description = "Name of the Prometheus server SSH key pair"
+  value       = module.prometheus_server.prometheus_server_key_pair_name
+}
+
+output "grafana_key_pair_name" {
+  description = "Name of the Grafana server SSH key pair"
+  value       = module.grafana_server.grafana_server_key_pair_name
+}
+
 output "load_balancer_dns_name" {
   description = "DNS name of the application load balancer"
   value       = module.load_balancer.alb_dns_name

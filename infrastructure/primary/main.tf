@@ -110,6 +110,9 @@ module "app_server" {
   instance_type = var.app_instance_type
   subnet_id     = module.vpc.app_subnet_az1_id
   app_server_security_group_id = module.security_groups.web_security_group_id
+  key_name      = "${var.project}-${var.environment}-app-key"
+  app_public_key_path = var.app_public_key_path
+  environment   = var.environment
 
   # Add the application security group input required by your module.
   # For example:
@@ -123,6 +126,9 @@ module "prometheus_server" {
   instance_type                = var.monitoring_instance_type
   subnet_id                    = module.vpc.monitoring_subnet_az1_id
   prometheus_security_group_id = module.security_groups.prometheus_security_group_id
+  key_name                     = "${var.project}-${var.environment}-prometheus-key"
+  prometheus_public_key_path   = var.prometheus_public_key_path
+  environment                  = var.environment
 }
 
 module "grafana_server" {
@@ -132,6 +138,9 @@ module "grafana_server" {
   instance_type             = var.monitoring_instance_type
   subnet_id                 = module.vpc.monitoring_subnet_az1_id
   grafana_security_group_id = module.security_groups.grafana_security_group_id
+  key_name                  = "${var.project}-${var.environment}-grafana-key"
+  grafana_public_key_path    = var.grafana_public_key_path
+  environment               = var.environment
 }
 
 module "database" {

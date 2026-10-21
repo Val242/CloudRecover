@@ -23,3 +23,18 @@ variable "instance_name" {
    type = string
    default = "prometheus-server"
 }
+
+variable "key_name" {
+  description = "Name of the SSH key pair for the Prometheus server"
+  type        = string
+}
+
+variable "prometheus_public_key_path" {
+  description = "Path to the SSH public key file"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment used for resource tagging"
+  type        = string
+}

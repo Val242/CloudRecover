@@ -8,3 +8,7 @@ output "app_server_state" {
   value = aws_ec2_instance_state.app-server-state.state
 }
 
+output "app_server_key_pair_name" {
+  description = "Name of the application server SSH key pair"
+  value       = aws_key_pair.cloudrecover-private-server.key_name
+}

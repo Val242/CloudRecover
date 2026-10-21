@@ -288,6 +288,21 @@ variable "public_key_path" {
   type        = string
 }
 
+variable "app_public_key_path" {
+  description = "Path to the SSH public key file for the application server"
+  type        = string
+}
+
+variable "prometheus_public_key_path" {
+  description = "Path to the SSH public key file for the Prometheus server"
+  type        = string
+}
+
+variable "grafana_public_key_path" {
+  description = "Path to the SSH public key file for the Grafana server"
+  type        = string
+}
+
 # ==========================================
 # RDS Database Credentials
 # ==========================================

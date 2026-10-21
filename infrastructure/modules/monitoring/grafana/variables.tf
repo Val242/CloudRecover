@@ -18,3 +18,18 @@ variable "instance_name" {
    type = string
    default = "grafana-server"
 }
+
+variable "key_name" {
+  description = "Name of the SSH key pair for the Grafana server"
+  type        = string
+}
+
+variable "grafana_public_key_path" {
+  description = "Path to the SSH public key file"
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment used for resource tagging"
+  type        = string
+}

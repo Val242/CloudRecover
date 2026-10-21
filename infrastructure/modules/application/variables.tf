@@ -24,13 +24,17 @@ variable "app_server_security_group_id" {
   type        = string
 }
 
+variable "key_name" {
+  description = "Name of the SSH key pair for the application server"
+  type        = string
+}
 
-# resource "aws_instance"  "this"  {
-#   ami           = var.ami_id
-#   instance_type = var.instance_type
-#   subnet_id     = var.subnet_id
+variable "app_public_key_path" {
+  description = "Path to the SSH public key file"
+  type        = string
+}
 
-#   tags = {
-#     Name = var.instance_name
-#   }
-# }
+variable "environment" {
+  description = "Deployment environment used for resource tagging"
+  type        = string
+}
