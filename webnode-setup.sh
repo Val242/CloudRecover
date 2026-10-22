@@ -1,498 +1,523 @@
-#!/bin/bash
-#=============================================================
-#  CloudRecover Application Server Setup Script
-#-------------------------------------------------------------
-#  Installs and configures:
-#   1. Basic System Setup
-#   2. Node.js LTS
-#   3. Node Exporter
-#   4. PostgreSQL
-#   5. CloudRecover NestJS Application
-#   6. CloudRecover systemd Service
-#   7. Load Generation Scripts
-#   8. UFW Firewall
-#   9. Final Summary
-#
-#  Author: Ebong Valentine
-#  Version: 3.0
-#  Tested on: Ubuntu 22.04 LTS
-#=============================================================
 
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 027
 
-#-------------------------------------------------------------
-# 1. Basic System Setup
-#-------------------------------------------------------------
-echo "===== [1/9] Setting up basic system configuration ====="
+# ============================================================
+# CloudRecover application-server provisioning
+# OS: Ubuntu Server 26.04 LTS
+# App: NestJS + Prisma + PostgreSQL on Amazon RDS
+# Author: Ebong Valentine
+# ============================================================
 
-echo "Setting hostname to web01..."
+APP_REPO="https://github.com/Val242/CloudRecover.git"
+APP_BRANCH="main"
+APP_SUBDIR="cloudrecover-api"
 
-echo "web01" > /etc/hostname
-hostname web01
+APP_DIR="/opt/cloudrecover-api"
+APP_USER="cloudrecover"
+APP_GROUP="cloudrecover"
+APP_SERVICE="cloudrecover-api"
 
-echo "Updating and upgrading system packages..."
+NODE_EXPORTER_VERSION="1.10.2"
+NODE_EXPORTER_SERVICE="node-exporter"
+NODE_EXPORTER_USER="prometheus"
+NODE_EXPORTER_BIN="/usr/local/bin/node_exporter"
 
-apt update -y
-apt upgrade -y
+RDS_CA_DIR="/etc/ssl/certs/rds"
+RDS_CA_BUNDLE="${RDS_CA_DIR}/global-bundle.pem"
+RDS_CA_URL="https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem"
 
-echo "Installing essential utilities..."
+# Match this to the actual VPC CIDR configured in Terraform.
+VPC_CIDR="${VPC_CIDR:-172.40.0.0/16}"
 
-apt install -y \
+ENV_FILE="${APP_DIR}/.env"
+WORK_DIR="$(mktemp -d /tmp/cloudrecover-setup.XXXXXX)"
+
+cleanup() {
+    rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
+
+on_error() {
+    local exit_code=$?
+    echo "ERROR: Provisioning failed near line ${BASH_LINENO[0]} (exit ${exit_code})." >&2
+    echo "Review the preceding output and system logs before retrying." >&2
+    exit "$exit_code"
+}
+trap on_error ERR
+
+log() {
+    printf '\n[%s] %s\n' "$(date '+%F %T')" "$*"
+}
+
+fail() {
+    echo "ERROR: $*" >&2
+    exit 1
+}
+
+# ------------------------------------------------------------
+# 0. Validate operating system and execution context
+# ------------------------------------------------------------
+
+[[ $EUID -eq 0 ]] || fail "Run this script with sudo or as root."
+[[ -r /etc/os-release ]] || fail "Cannot identify the operating system."
+
+source /etc/os-release
+
+[[ "${ID:-}" == "ubuntu" ]] || fail "Ubuntu is required."
+[[ "${VERSION_ID:-}" == "26.04" ]] || fail "This script targets Ubuntu 26.04 only."
+
+case "$(dpkg --print-architecture)" in
+    amd64)
+        EXPORTER_ARCH="amd64"
+        ;;
+    arm64)
+        EXPORTER_ARCH="arm64"
+        ;;
+    *)
+        fail "Unsupported architecture: $(dpkg --print-architecture)"
+        ;;
+esac
+
+log "Ubuntu ${VERSION_ID}; architecture $(dpkg --print-architecture)"
+log "Application directory: ${APP_DIR}"
+log "VPC CIDR for host firewall rules: ${VPC_CIDR}"
+
+# ------------------------------------------------------------
+# 1. Base operating-system packages
+# ------------------------------------------------------------
+
+log "Updating packages and installing prerequisites"
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get upgrade -y
+
+apt-get install -y \
+    ca-certificates \
     curl \
     wget \
     git \
+    rsync \
     zip \
     unzip \
-    ca-certificates \
     gnupg \
     stress \
-    stress-ng
+    stress-ng \
+    ufw
 
-echo "Basic system setup completed."
+install -d -m 0755 /etc/apt/keyrings
 
+# ------------------------------------------------------------
+# 2. Install Node.js 24 LTS
+# ------------------------------------------------------------
 
-#-------------------------------------------------------------
-# 2. Install Node.js LTS
-#-------------------------------------------------------------
-echo "===== [2/9] Installing Node.js LTS ====="
+log "Installing Node.js 24 LTS"
 
-curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+if ! command -v node >/dev/null 2>&1 ||
+   ! node --version | grep -Eq '^v24\.'; then
 
-apt install -y nodejs
+    curl -fsSL https://deb.nodesource.com/setup_24.x \
+        -o "${WORK_DIR}/nodesource_setup.sh"
 
-echo "Node.js version:"
+    bash "${WORK_DIR}/nodesource_setup.sh"
+    apt-get install -y nodejs
+fi
+
 node --version
-
-echo "NPM version:"
 npm --version
 
-echo "Node.js installation completed."
+node --version | grep -Eq '^v24\.' ||
+    fail "Node.js 24 was not installed successfully."
 
+# ------------------------------------------------------------
+# 3. Install Node Exporter
+# ------------------------------------------------------------
 
-#-------------------------------------------------------------
-# 3. Install and Configure Node Exporter
-#-------------------------------------------------------------
-echo "===== [3/9] Installing Prometheus Node Exporter ====="
+log "Installing Node Exporter ${NODE_EXPORTER_VERSION}"
 
-NODE_EXPORTER_VERSION="1.10.2"
+if ! getent group "${NODE_EXPORTER_USER}" >/dev/null; then
+    groupadd --system "${NODE_EXPORTER_USER}"
+fi
 
-mkdir -p /tmp/node-exporter
-cd /tmp/node-exporter
+if ! id "${NODE_EXPORTER_USER}" >/dev/null 2>&1; then
+    useradd \
+        --system \
+        --gid "${NODE_EXPORTER_USER}" \
+        --no-create-home \
+        --shell /usr/sbin/nologin \
+        "${NODE_EXPORTER_USER}"
+fi
 
-echo "Downloading Node Exporter v${NODE_EXPORTER_VERSION}..."
+EXPORTER_ARCHIVE="node_exporter-${NODE_EXPORTER_VERSION}.linux-${EXPORTER_ARCH}.tar.gz"
+EXPORTER_URL="https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/${EXPORTER_ARCHIVE}"
 
-wget -q \
-    "https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXPORTER_VERSION}/node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+curl -fL "${EXPORTER_URL}" -o "${WORK_DIR}/${EXPORTER_ARCHIVE}"
 
-echo "Extracting Node Exporter..."
+tar -xzf "${WORK_DIR}/${EXPORTER_ARCHIVE}" -C "${WORK_DIR}"
 
-tar xzf \
-    "node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64.tar.gz"
+install -o root -g root -m 0755 \
+    "${WORK_DIR}/node_exporter-${NODE_EXPORTER_VERSION}.linux-${EXPORTER_ARCH}/node_exporter" \
+    "${NODE_EXPORTER_BIN}"
 
-echo "Installing Node Exporter..."
-
-mkdir -p /var/lib/node
-
-mv \
-    "node_exporter-${NODE_EXPORTER_VERSION}.linux-amd64/node_exporter" \
-    /var/lib/node/node_exporter
-
-echo "Creating prometheus system user..."
-
-groupadd --system prometheus 2>/dev/null || true
-
-useradd \
-    --system \
-    --no-create-home \
-    --shell /usr/sbin/nologin \
-    --gid prometheus \
-    prometheus 2>/dev/null || true
-
-chown -R prometheus:prometheus /var/lib/node
-
-chmod 755 /var/lib/node
-chmod 755 /var/lib/node/node_exporter
-
-echo "Creating Node Exporter systemd service..."
-
-cat <<EOF > /etc/systemd/system/node-exporter.service
+cat > /etc/systemd/system/${NODE_EXPORTER_SERVICE}.service <<EOF
 [Unit]
 Description=Prometheus Node Exporter
-Documentation=https://prometheus.io/docs/guides/node-exporter/
-Wants=network-online.target
 After=network-online.target
-
-[Service]
-Type=simple
-User=prometheus
-Group=prometheus
-
-ExecStart=/var/lib/node/node_exporter
-
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable --now node-exporter
-
-echo "Checking Node Exporter status..."
-
-systemctl status node-exporter --no-pager
-
-echo "Node Exporter setup completed."
-
-
-# #-------------------------------------------------------------
-# # 4. Install PostgreSQL
-# #-------------------------------------------------------------
-# echo "===== [4/9] Installing PostgreSQL ====="
-
-# apt install -y postgresql postgresql-contrib
-
-# systemctl enable --now postgresql
-
-# echo "Checking PostgreSQL status..."
-
-# systemctl status postgresql --no-pager
-
-# echo "PostgreSQL setup completed."
-
-
-#-------------------------------------------------------------
-# 5. Setup CloudRecover NestJS Application
-#-------------------------------------------------------------
-echo "===== [5/9] Setting up CloudRecover NestJS application ====="
-
-mkdir -p /tmp/project
-
-cd /tmp/project
-
-rm -rf CloudRecover
-
-echo "Cloning CloudRecover repository..."
-
-git clone --no-checkout https://github.com/Val242/CloudRecover.git
-
-cd CloudRecover
-
-echo "Checking out cloudrecover-api only..."
-
-git sparse-checkout init --cone
-git sparse-checkout set cloudrecover-api
-git checkout
-
-echo "Repository checkout completed."
-
-
-#-------------------------------------------------------------
-# Move application to /opt
-#-------------------------------------------------------------
-echo "Installing CloudRecover application..."
-
-rm -rf /opt/cloudrecover-api
-
-mkdir -p /opt/cloudrecover-api
-
-cp -r cloudrecover-api/. /opt/cloudrecover-api/
-
-cd /opt/cloudrecover-api
-
-
-#-------------------------------------------------------------
-# Create CloudRecover system user
-#-------------------------------------------------------------
-echo "Creating cloudrecover system user..."
-
-groupadd --system cloudrecover 2>/dev/null || true
-
-useradd \
-    --system \
-    --no-create-home \
-    --shell /usr/sbin/nologin \
-    --gid cloudrecover \
-    cloudrecover 2>/dev/null || true
-
-
-#-------------------------------------------------------------
-# Install Node dependencies
-#-------------------------------------------------------------
-echo "Installing Node.js dependencies..."
-
-npm ci
-
-
-#-------------------------------------------------------------
-# Generate Prisma Client
-#-------------------------------------------------------------
-echo "Generating Prisma Client..."
-
-npx prisma generate
-
-
-#-------------------------------------------------------------
-# Build NestJS application
-#-------------------------------------------------------------
-echo "Building cloudrecover application..."
-
-npm run build
-
-
-#-------------------------------------------------------------
-# Create application environment file
-#-------------------------------------------------------------
-echo "Creating cloudrecover environment file..."
-
-touch /opt/cloudrecover-api/.env
-
-chown cloudrecover:cloudrecover /opt/cloudrecover-api/.env
-
-chmod 600 /opt/cloudrecover-api/.env
-
-
-#-------------------------------------------------------------
-# Application permissions
-#-------------------------------------------------------------
-echo "Setting application permissions..."
-
-chown -R cloudrecover:cloudrecover /opt/cloudrecover-api
-
-chmod -R 755 /opt/cloudrecover-api
-
-chmod 600 /opt/cloudrecover-api/.env
-
-
-#-------------------------------------------------------------
-# CloudRecover systemd service
-#-------------------------------------------------------------
-echo "Creating CloudRecover systemd service..."
-
-cat <<EOF > /etc/systemd/system/cloudrecover-api.service
-[Unit]
-Description=CloudRecover NestJS API
 Wants=network-online.target
 
 [Service]
 Type=simple
-
-User=cloudrecover
-Group=cloudrecover
-
-WorkingDirectory=/opt/cloudrecover-api
-
-EnvironmentFile=/opt/cloudrecover-api/.env
-Environment=NODE_ENV=production
-
-ExecStart=/usr/bin/node /opt/cloudrecover-api/dist/src/main.js
-
-Restart=always
+User=${NODE_EXPORTER_USER}
+Group=${NODE_EXPORTER_USER}
+ExecStart=${NODE_EXPORTER_BIN} --web.listen-address=:9100
+Restart=on-failure
 RestartSec=5
-
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
+systemctl daemon-reload
+systemctl enable --now "${NODE_EXPORTER_SERVICE}"
 
-#-------------------------------------------------------------
-# Reload systemd
-#-------------------------------------------------------------
-echo "Reloading systemd..."
+# ------------------------------------------------------------
+# 4. Fetch and build the NestJS application
+# ------------------------------------------------------------
+
+log "Checking out CloudRecover"
+
+git clone \
+    --depth 1 \
+    --filter=blob:none \
+    --sparse \
+    --branch "${APP_BRANCH}" \
+    "${APP_REPO}" \
+    "${WORK_DIR}/repo"
+
+git -C "${WORK_DIR}/repo" sparse-checkout set "${APP_SUBDIR}"
+
+SOURCE_DIR="${WORK_DIR}/repo/${APP_SUBDIR}"
+
+[[ -f "${SOURCE_DIR}/package.json" ]] ||
+    fail "package.json was not found in ${SOURCE_DIR}"
+
+[[ -f "${SOURCE_DIR}/src/database/database.service.ts" ]] ||
+    fail "Expected database service was not found."
+
+# Verify that runtime PrismaPg uses the expected trusted CA.
+grep -Fq "${RDS_CA_BUNDLE}" \
+    "${SOURCE_DIR}/src/database/database.service.ts" ||
+    fail "DatabaseService does not reference ${RDS_CA_BUNDLE}"
+
+grep -Eq 'rejectUnauthorized:[[:space:]]*true' \
+    "${SOURCE_DIR}/src/database/database.service.ts" ||
+    fail "DatabaseService must verify the RDS server certificate."
+
+if ! getent group "${APP_GROUP}" >/dev/null; then
+    groupadd --system "${APP_GROUP}"
+fi
+
+if ! id "${APP_USER}" >/dev/null 2>&1; then
+    useradd \
+        --system \
+        --gid "${APP_GROUP}" \
+        --home-dir "${APP_DIR}" \
+        --no-create-home \
+        --shell /usr/sbin/nologin \
+        "${APP_USER}"
+fi
+
+install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${APP_DIR}"
+
+# Stop the current service before replacing application files.
+systemctl stop "${APP_SERVICE}" 2>/dev/null || true
+
+# Preserve .env; replace tracked application files without deleting secrets.
+rsync -a --delete \
+    --exclude='.env' \
+    --exclude='node_modules/' \
+    "${SOURCE_DIR}/" "${APP_DIR}/"
+
+chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
+
+log "Installing production dependencies and building NestJS"
+
+runuser -u "${APP_USER}" -- bash -c "
+    set -Eeuo pipefail
+    cd '${APP_DIR}'
+    npm ci
+    npx prisma generate
+    npm run build
+"
+
+[[ -f "${APP_DIR}/dist/src/main.js" ]] ||
+    fail "Expected build output dist/src/main.js was not created."
+
+# ------------------------------------------------------------
+# 5. Install the RDS CA bundle and configure DATABASE_URL
+# ------------------------------------------------------------
+
+log "Installing the Amazon RDS CA bundle"
+
+install -d -m 0755 "${RDS_CA_DIR}"
+
+curl -fL "${RDS_CA_URL}" -o "${RDS_CA_BUNDLE}.tmp"
+
+grep -q -- '-----BEGIN CERTIFICATE-----' "${RDS_CA_BUNDLE}.tmp" ||
+    fail "Downloaded RDS CA bundle does not look like a certificate bundle."
+
+install -o root -g root -m 0644 \
+    "${RDS_CA_BUNDLE}.tmp" "${RDS_CA_BUNDLE}"
+
+rm -f "${RDS_CA_BUNDLE}.tmp"
+
+if [[ ! -f "${ENV_FILE}" ]]; then
+    install -o "${APP_USER}" -g "${APP_GROUP}" -m 0600 /dev/null "${ENV_FILE}"
+fi
+
+chown "${APP_USER}:${APP_GROUP}" "${ENV_FILE}"
+chmod 0600 "${ENV_FILE}"
+
+# Existing DATABASE_URL is preserved. If absent, ask for the RDS details.
+if ! grep -qE '^DATABASE_URL=' "${ENV_FILE}"; then
+    log "DATABASE_URL is missing; configure the existing RDS database."
+
+    read -r -p "RDS endpoint hostname (without https://): " DB_HOST
+    read -r -p "Database name [mydb]: " DB_NAME
+    DB_NAME="${DB_NAME:-mydb}"
+    read -r -p "Database username: " DB_USER
+    read -r -s -p "Database password: " DB_PASSWORD
+    printf '\n'
+
+    [[ -n "${DB_HOST}" && -n "${DB_NAME}" && -n "${DB_USER}" ]] ||
+        fail "RDS hostname, database name, and username are required."
+
+    # Encode URL components without printing the password.
+    DATABASE_URL_VALUE="$(
+        DB_HOST="${DB_HOST}" \
+        DB_NAME="${DB_NAME}" \
+        DB_USER="${DB_USER}" \
+        DB_PASSWORD="${DB_PASSWORD}" \
+        node <<'NODE'
+const enc = encodeURIComponent;
+const host = process.env.DB_HOST;
+if (host.includes("/") || host.includes("@") || host.includes("://")) {
+  throw new Error("Enter only the RDS endpoint hostname.");
+}
+const db = enc(process.env.DB_NAME);
+const user = enc(process.env.DB_USER);
+const pass = enc(process.env.DB_PASSWORD);
+process.stdout.write(
+  `postgresql://${user}:${pass}@${host}:5432/${db}?schema=public`
+);
+NODE
+    )"
+
+    printf '\nDATABASE_URL="%s"\n' "${DATABASE_URL_VALUE}" >> "${ENV_FILE}"
+
+    unset DB_HOST DB_NAME DB_USER DB_PASSWORD DATABASE_URL_VALUE
+    chown "${APP_USER}:${APP_GROUP}" "${ENV_FILE}"
+    chmod 0600 "${ENV_FILE}"
+fi
+
+# Validate the URL without printing its credentials.
+runuser -u "${APP_USER}" -- env APP_ENV_FILE="${ENV_FILE}" node <<'NODE'
+const dotenv = require("dotenv");
+dotenv.config({ path: process.env.APP_ENV_FILE });
+
+const value = process.env.DATABASE_URL;
+if (!value) throw new Error("DATABASE_URL is missing.");
+
+const url = new URL(value);
+if (!["postgres:", "postgresql:"].includes(url.protocol)) {
+  throw new Error("DATABASE_URL must use PostgreSQL.");
+}
+if (!url.hostname || !url.username || !url.pathname.slice(1)) {
+  throw new Error("DATABASE_URL is missing required connection fields.");
+}
+if (url.searchParams.has("sslmode")) {
+  throw new Error(
+    "Remove sslmode from the persistent DATABASE_URL; runtime TLS is configured in PrismaPg."
+  );
+}
+console.log("DATABASE_URL structure validated; credentials were not displayed.");
+NODE
+
+# Apply migrations using a temporary CLI-only sslmode=require.
+# This is not written back to .env. Runtime TLS uses the explicit RDS CA
+# configuration in DatabaseService.
+log "Applying Prisma migrations"
+
+runuser -u "${APP_USER}" -- \
+    env APP_ENV_FILE="${ENV_FILE}" APP_DIR="${APP_DIR}" \
+    node <<'NODE'
+const dotenv = require("dotenv");
+const { spawnSync } = require("node:child_process");
+
+dotenv.config({ path: process.env.APP_ENV_FILE });
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is missing.");
+}
+
+const url = new URL(process.env.DATABASE_URL);
+url.searchParams.set("sslmode", "require");
+
+const env = {
+  ...process.env,
+  DATABASE_URL: url.toString(),
+};
+
+const result = spawnSync(
+  "npx",
+  ["prisma", "migrate", "deploy"],
+  {
+    cwd: process.env.APP_DIR,
+    env,
+    stdio: "inherit",
+  }
+);
+
+if (result.error) throw result.error;
+process.exit(result.status ?? 1);
+NODE
+
+# ------------------------------------------------------------
+# 6. Create and start the application systemd service
+# ------------------------------------------------------------
+
+log "Configuring ${APP_SERVICE}.service"
+
+cat > "/etc/systemd/system/${APP_SERVICE}.service" <<EOF
+[Unit]
+Description=CloudRecover NestJS API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+Group=${APP_GROUP}
+WorkingDirectory=${APP_DIR}
+EnvironmentFile=${ENV_FILE}
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node ${APP_DIR}/dist/src/main.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
+EOF
 
 systemctl daemon-reload
+systemctl enable --now "${APP_SERVICE}"
 
+# ------------------------------------------------------------
+# 7. Install the load-testing and log-generation scripts
+# ------------------------------------------------------------
 
-# #-------------------------------------------------------------
-# # Prisma Database Migration
-# #-------------------------------------------------------------
-# echo "Running Prisma migrations..."
+log "Installing load and log-generation scripts"
 
-# if [ -n "${DATABASE_URL:-}" ]; then
-#     sudo -u cloudrecover \
-#         env DATABASE_URL="$DATABASE_URL" \
-#         npx prisma migrate deploy
-# else
-#     echo "DATABASE_URL is not currently set."
-#     echo "Skipping Prisma migration."
-#     echo "Configure /opt/cloudrecover-api/.env before running migrations."
-# fi
+curl -fL \
+    "https://raw.githubusercontent.com/hkhcoder/vprofile-project/monitoring/load.sh" \
+    -o "${APP_DIR}/load.sh"
 
+curl -fL \
+    "https://raw.githubusercontent.com/hkhcoder/vprofile-project/monitoring/generate_multi_logs.sh" \
+    -o "${APP_DIR}/generate_multi_logs.sh"
 
-# #-------------------------------------------------------------
-# # Start CloudRecover
-# #-------------------------------------------------------------
-# echo "Enabling CloudRecover service..."
+chmod 0750 "${APP_DIR}/load.sh" "${APP_DIR}/generate_multi_logs.sh"
+chown "${APP_USER}:${APP_GROUP}" \
+    "${APP_DIR}/load.sh" "${APP_DIR}/generate_multi_logs.sh"
 
-# systemctl enable cloudrecover-api
+# ------------------------------------------------------------
+# 8. Configure the host firewall
+# ------------------------------------------------------------
 
-# echo "Starting CloudRecover service..."
+log "Configuring UFW"
 
-# systemctl start cloudrecover-api
+ufw default deny incoming
+ufw default allow outgoing
 
-# echo "Checking CloudRecover service..."
+# SSH access. Restrict the source in the EC2 security group.
+ufw allow 22/tcp comment 'SSH'
 
-# systemctl status cloudrecover-api --no-pager
+# App and node metrics are available only from the configured VPC CIDR.
+ufw allow from "${VPC_CIDR}" to any port 3000 proto tcp comment 'CloudRecover API'
+ufw allow from "${VPC_CIDR}" to any port 9100 proto tcp comment 'Node Exporter'
 
-# echo "CloudRecover application setup completed."
+# No HTTP/HTTPS rules are added because this host does not configure a
+# reverse proxy. Add them only if the architecture requires them.
+ufw --force enable
 
+# ------------------------------------------------------------
+# 9. Verify services and endpoints
+# ------------------------------------------------------------
 
-#-------------------------------------------------------------
-# 6. Verify Application
-#-------------------------------------------------------------
-echo "===== [6/9] Verifying CloudRecover application ====="
+log "Checking Node Exporter"
 
-echo "Waiting for CloudRecover to start..."
+systemctl is-active --quiet "${NODE_EXPORTER_SERVICE}" ||
+    fail "Node Exporter is not active."
 
-sleep 5
+curl -fsS http://127.0.0.1:9100/metrics >/dev/null ||
+    fail "Node Exporter metrics endpoint failed."
 
-if curl -f http://localhost:3000/health/live; then
-    echo ""
-    echo "CloudRecover liveness check passed."
-else
-    echo ""
-    echo "WARNING: CloudRecover liveness check failed."
-    echo "Check logs with:"
-    echo "journalctl -u cloudrecover-api -n 100 --no-pager"
-fi
+log "Waiting for the API readiness endpoint"
 
-echo ""
-echo "Checking application metrics endpoint..."
+READY=0
 
-if curl -f http://localhost:3000/metrics > /dev/null; then
-    echo "CloudRecover metrics endpoint is available."
-else
-    echo "WARNING: /metrics endpoint is not available."
-fi
+for attempt in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:3000/health/ready >/dev/null; then
+        READY=1
+        break
+    fi
+    sleep 2
+done
 
+[[ "${READY}" -eq 1 ]] ||
+    fail "API did not become ready. Inspect journalctl for ${APP_SERVICE}."
 
-#-------------------------------------------------------------
-# 7. Load Generation Scripts
-#-------------------------------------------------------------
-echo "===== [7/9] Setting up load generation scripts ====="
+curl -fsS http://127.0.0.1:3000/health/live
+printf '\n'
 
-echo "Downloading load scripts..."
+curl -fsS http://127.0.0.1:3000/health/ready
+printf '\n'
 
-wget -q \
-    -P /usr/local/bin/ \
-    https://raw.githubusercontent.com/hkhcoder/vprofile-project/refs/heads/monitoring/load.sh
+curl -fsS http://127.0.0.1:3000/metrics >/dev/null ||
+    fail "Application metrics endpoint failed."
 
-wget -q \
-    -P /usr/local/bin/ \
-    https://raw.githubusercontent.com/hkhcoder/vprofile-project/refs/heads/monitoring/generate_multi_logs.sh
+systemctl is-active --quiet "${APP_SERVICE}" ||
+    fail "CloudRecover service is not active."
 
-chmod +x \
-    /usr/local/bin/load.sh \
-    /usr/local/bin/generate_multi_logs.sh
+log "Provisioning completed successfully"
 
-echo "Load generation scripts installed."
+printf '\n'
+printf '%s\n' \
+    "Hostname:          $(hostname)" \
+    "OS:                Ubuntu ${VERSION_ID}" \
+    "Node.js:           $(node --version)" \
+    "App directory:     ${APP_DIR}" \
+    "App service:       ${APP_SERVICE}" \
+    "Node Exporter:     ${NODE_EXPORTER_VERSION} on port 9100" \
+    "API port:          3000" \
+    "RDS CA bundle:     ${RDS_CA_BUNDLE}" \
+    "Firewall VPC CIDR: ${VPC_CIDR}" \
+    "Database:          Amazon RDS PostgreSQL (no local PostgreSQL)"
 
-
-#-------------------------------------------------------------
-# 8. Configure UFW Firewall
-#-------------------------------------------------------------
-echo "===== [8/9] Configuring UFW Firewall ====="
-
-apt install -y ufw
-
-echo "Configuring firewall rules..."
-
-ufw allow 22/tcp
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 3000/tcp
-ufw allow 9100/tcp
-
-echo "Enabling UFW..."
-
-echo "y" | ufw enable
-
-echo "Firewall status:"
-
-ufw status verbose
-
-echo "UFW firewall configured."
-
-
-#-------------------------------------------------------------
-# 9. Final Summary
-#-------------------------------------------------------------
-echo ""
-echo "============================================================="
-echo "       CloudRecover Application Server Setup Complete"
-echo "============================================================="
-
-echo ""
-
-echo "Node.js:"
-node --version
-
-echo ""
-
-echo "NPM:"
-npm --version
-
-echo ""
-
-echo "Services:"
-
-echo -n "Node Exporter : "
-systemctl is-active node-exporter
-
-# echo -n "PostgreSQL    : "
-# systemctl is-active postgresql
-
-echo -n "CloudRecover API: "
-systemctl is-active cloudrecover-api
-
-echo ""
-
-echo "Application:"
-echo "  Internal: http://<APPLICATION_PRIVATE_IP>:3000"
-
-echo ""
-
-echo "Health:"
-echo "  Liveness: http://<APPLICATION_PRIVATE_IP>:3000/health/live"
-echo "  Readiness: http://<APPLICATION_PRIVATE_IP>:3000/health/ready"
-
-echo ""
-
-echo "Metrics:"
-echo "  Application: http://<APPLICATION_PRIVATE_IP>:3000/metrics"
-echo "  System:      http://<APPLICATION_PRIVATE_IP>:9100/metrics"
-
-echo ""
-
-echo "PostgreSQL:"
-echo "  Internal only: localhost:5432"
-
-echo ""
-
-echo "Monitoring:"
-echo "  Prometheus should scrape:"
-echo "    - APPLICATION_PRIVATE_IP:3000/metrics"
-echo "    - APPLICATION_PRIVATE_IP:9100/metrics"
-
-echo ""
-
-echo "CloudRecover installation:"
-echo "  /opt/cloudrecover-api"
-
-echo ""
-
-echo "Useful commands:"
-echo "  systemctl status cloudrecover-api"
-echo "  journalctl -u cloudrecover-api -f"
-echo "  systemctl status node-exporter"
-echo "  journalctl -u node-exporter -f"
-
-echo ""
-
-echo "============================================================="
-echo "              Setup completed successfully!"
-echo "============================================================="
+printf '\nUseful diagnostics:\n'
+printf '  systemctl status %s\n' "${APP_SERVICE}"
+printf '  journalctl -u %s -n 100 --no-pager\n' "${APP_SERVICE}"
+printf '  systemctl status %s\n' "${NODE_EXPORTER_SERVICE}"
+printf '  ufw status verbose\n'

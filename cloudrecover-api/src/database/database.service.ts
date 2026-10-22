@@ -9,10 +9,17 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     await this.$connect();
   }
 
-  constructor() {
-    const adapter = new PrismaPg({
-      connectionString: process.env.DATABASE_URL as string,
-    });
-    super({ adapter });
-  }
+constructor() {
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL as string,
+    ssl: {
+      ca: require("fs").readFileSync(
+        "/etc/ssl/certs/rds/global-bundle.pem",
+        "utf8",
+      ),
+      rejectUnauthorized: true,
+    },
+  });
+  super({ adapter });
+}
 }
