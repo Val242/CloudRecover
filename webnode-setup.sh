@@ -328,7 +328,8 @@ NODE
 fi
 
 # Validate the URL without printing its credentials.
-runuser -u "${APP_USER}" -- env APP_ENV_FILE="${ENV_FILE}" node <<'NODE'
+runuser --chdir="${APP_DIR}" -u "${APP_USER}" -- \
+    env APP_ENV_FILE="${ENV_FILE}" node <<'NODE'
 const dotenv = require("dotenv");
 dotenv.config({ path: process.env.APP_ENV_FILE });
 
@@ -355,7 +356,7 @@ NODE
 # configuration in DatabaseService.
 log "Applying Prisma migrations"
 
-runuser -u "${APP_USER}" -- \
+runuser --chdir="${APP_DIR}" -u "${APP_USER}" -- \
     env APP_ENV_FILE="${ENV_FILE}" APP_DIR="${APP_DIR}" \
     node <<'NODE'
 const dotenv = require("dotenv");
