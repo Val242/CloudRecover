@@ -42,8 +42,8 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Select Availability Zones and distribute subnets appropriately.
 - [x] Configure public and private route tables.
 - [x] Configure the Internet Gateway and NAT Gateway.
-- [ ] Configure the bastion host and restricted administrative access.
-- [ ] Configure security groups and IAM permissions.
+- [x] Configure the bastion host and restricted administrative access.
+- [x] Configure security groups and IAM permissions.
 - [ ] Provision the internal Application Load Balancer.
 - [ ] Provision the application EC2 instance.
 - [ ] Provision private RDS PostgreSQL.
