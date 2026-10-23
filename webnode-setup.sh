@@ -263,35 +263,29 @@ if ! id "${APP_USER}" >/dev/null 2>&1; then
 fi
 
 install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${APP_DIR}"
-install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${APP_DIR}/releases"
 
-# Stop the current service before initializing a new release.
+# Stop the current service before replacing application files.
 systemctl stop "${APP_SERVICE}" 2>/dev/null || true
 
-# Build into a versioned release directory. Keep .env outside releases.
-BOOTSTRAP_RELEASE="bootstrap-$(date +%Y%m%d%H%M%S)"
-RELEASE_DIR="${APP_DIR}/releases/${BOOTSTRAP_RELEASE}"
+# Preserve .env; replace tracked application files without deleting secrets.
+rsync -a --delete \
+    --exclude='.env' \
+    --exclude='node_modules/' \
+    "${SOURCE_DIR}/" "${APP_DIR}/"
 
-install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${RELEASE_DIR}"
-
-rsync -a --delete \\
-    --exclude='.env' \\
-    --exclude='node_modules/' \\
-    "${SOURCE_DIR}/" "${RELEASE_DIR}/"
-
-chown -R "${APP_USER}:${APP_GROUP}" "${RELEASE_DIR}"
+chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
 
 log "Installing production dependencies and building NestJS"
 
 runuser -u "${APP_USER}" -- bash -c "
     set -Eeuo pipefail
-    cd '${RELEASE_DIR}'
+    cd '${APP_DIR}'
     npm ci
     npx prisma generate
     npm run build
 "
 
-[[ -f "${RELEASE_DIR}/dist/src/main.js" ]] ||
+[[ -f "${APP_DIR}/dist/src/main.js" ]] ||
     fail "Expected build output dist/src/main.js was not created."
 
 # ------------------------------------------------------------
@@ -363,7 +357,7 @@ fi
 
 # Validate the URL without printing its credentials.
 runuser -u "${APP_USER}" -- \
-    bash -c "cd '${RELEASE_DIR}' && exec env APP_ENV_FILE='${ENV_FILE}' node" <<'NODE'
+    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env node' <<'NODE'
 const dotenv = require("dotenv");
 dotenv.config({ path: process.env.APP_ENV_FILE });
 
@@ -391,7 +385,7 @@ NODE
 log "Applying Prisma migrations"
 
 runuser -u "${APP_USER}" -- \
-    bash -c "cd '${RELEASE_DIR}' && exec env APP_ENV_FILE='${ENV_FILE}' APP_DIR='${RELEASE_DIR}' node" <<'NODE'
+    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env APP_DIR=/opt/cloudrecover-api node' <<'NODE'
 const dotenv = require("dotenv");
 const { spawnSync } = require("node:child_process");
 
@@ -429,10 +423,6 @@ NODE
 
 log "Configuring ${APP_SERVICE}.service"
 
-# Activate the bootstrapped release only after build and migration checks pass.
-ln -sfn "${RELEASE_DIR}" "${APP_DIR}/current"
-chown -h "${APP_USER}:${APP_GROUP}" "${APP_DIR}/current"
-
 cat > "/etc/systemd/system/${APP_SERVICE}.service" <<EOF
 [Unit]
 Description=CloudRecover NestJS API
@@ -443,10 +433,10 @@ Wants=network-online.target
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
-WorkingDirectory=${APP_DIR}/current
+WorkingDirectory=${APP_DIR}
 EnvironmentFile=${ENV_FILE}
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node ${APP_DIR}/current/dist/src/main.js
+ExecStart=/usr/bin/node ${APP_DIR}/dist/src/main.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
