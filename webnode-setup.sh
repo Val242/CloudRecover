@@ -328,8 +328,8 @@ NODE
 fi
 
 # Validate the URL without printing its credentials.
-runuser --chdir="${APP_DIR}" -u "${APP_USER}" -- \
-    env APP_ENV_FILE="${ENV_FILE}" node <<'NODE'
+runuser -u "${APP_USER}" -- \
+    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env node' <<'NODE'
 const dotenv = require("dotenv");
 dotenv.config({ path: process.env.APP_ENV_FILE });
 
@@ -356,9 +356,8 @@ NODE
 # configuration in DatabaseService.
 log "Applying Prisma migrations"
 
-runuser --chdir="${APP_DIR}" -u "${APP_USER}" -- \
-    env APP_ENV_FILE="${ENV_FILE}" APP_DIR="${APP_DIR}" \
-    node <<'NODE'
+runuser -u "${APP_USER}" -- \
+    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env APP_DIR=/opt/cloudrecover-api node' <<'NODE'
 const dotenv = require("dotenv");
 const { spawnSync } = require("node:child_process");
 

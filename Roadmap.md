@@ -44,19 +44,19 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Configure the Internet Gateway and NAT Gateway.
 - [x] Configure the bastion host and restricted administrative access.
 - [x] Configure security groups and IAM permissions.
-- [ ] Provision the internal Application Load Balancer.
-- [ ] Provision the application EC2 instance.
-- [ ] Provision private RDS PostgreSQL.
-- [ ] Validate network connectivity and security boundaries.
+- [x] Provision the internal Application Load Balancer.
+- [x] Provision the application EC2 instance.
+- [x] Provision private RDS PostgreSQL.
+- [x] Validate network connectivity and security boundaries.
 
 ## Phase 4 — Application Deployment
 
-- [ ] Configure the Ubuntu application server.
-- [ ] Install Node.js and required system dependencies.
-- [ ] Configure the application system user and directories.
-- [ ] Configure application environment variables and database connectivity.
-- [ ] Configure the systemd service.
-- [ ] Deploy the NestJS API.
+- [x] Configure the Ubuntu application server.
+- [x] Install Node.js and required system dependencies.
+- [x] Configure the application system user and directories.
+- [x] Configure application environment variables and database connectivity.
+- [x] Configure the systemd service.
+- [x] Deploy the NestJS API.
 - [ ] Configure the ALB target group and health checks.
 - [ ] Verify application readiness and database connectivity.
 
