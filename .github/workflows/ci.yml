@@ -1,0 +1,115 @@
+
+name: CloudRecover API CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudrecover-api/**"
+      - ".github/workflows/cloudrecover-ci.yml"
+      - ".github/workflows/cloudrecover-deploy.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "cloudrecover-api/**"
+      - ".github/workflows/cloudrecover-ci.yml"
+      - ".github/workflows/cloudrecover-deploy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudrecover-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Lint, test, build, and package
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: cloudrecover-api
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloudrecover-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npx eslint "src/**/*.ts" "test/**/*.ts"
+
+      - name: Run unit tests
+        run: npm test -- --runInBand
+
+      - name: Build
+        run: npm run build
+
+      - name: Package release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          archive="$RUNNER_TEMP/cloudrecover-api-${GITHUB_SHA}.tar.gz"
+
+          tar -czf "$archive" \
+            -C "$GITHUB_WORKSPACE/cloudrecover-api" \
+            dist \
+            package.json \
+            package-lock.json \
+            prisma \
+            prisma.config.ts
+
+          echo "RELEASE_ARCHIVE=$archive" >> "$GITHUB_ENV"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudrecover-api-${{ github.sha }}
+          path: ${{ env.RELEASE_ARCHIVE }}
+          if-no-files-found: error
+          retention-days: 7
+
+  security:
+    name: Secret and dependency scans
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: cloudrecover-api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cloudrecover-api
+        run: npm ci
+
+      - name: Audit production dependencies
+        working-directory: cloudrecover-api
+        run: npm audit --omit=dev --audit-level=high
