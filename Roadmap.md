@@ -58,7 +58,7 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Configure the systemd service.
 - [x] Deploy the NestJS API.
 - [ ] Configure the ALB target group and health checks.
-- [ ] Verify application readiness and database connectivity.
+- [x] Verify application readiness and database connectivity.
 
 ## Phase 5 — Monitoring and Observability
 
@@ -73,14 +73,14 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 
 ## Phase 6 — CI/CD Automation
 
-- [ ] Create the GitHub Actions workflow.
-- [ ] Add dependency installation, linting, testing, and build checks.
-- [ ] Add secret scanning and dependency auditing.
-- [ ] Package versioned application artifacts.
-- [ ] Configure S3 artifact storage.
-- [ ] Configure GitHub OIDC federation with AWS IAM.
-- [ ] Deploy through Systems Manager.
-- [ ] Run database migrations safely.
+- [x] Create the GitHub Actions workflow.
+- [x] Add dependency installation, linting, testing, and build checks.
+- [x] Add secret scanning and dependency auditing.
+- [x] Package versioned application artifacts.
+- [x] Configure S3 artifact storage.
+- [x] Configure GitHub OIDC federation with AWS IAM.
+- [x] Deploy through Systems Manager.
+- [x] Run database migrations safely.
 - [ ] Restart the application service and verify health.
 - [ ] Test deployment failures and recovery.
 
