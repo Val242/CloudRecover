@@ -56,6 +56,7 @@ fail() {
     exit 1
 }
 
+
 # ------------------------------------------------------------
 # 0. Validate operating system and execution context
 # ------------------------------------------------------------
@@ -71,9 +72,11 @@ source /etc/os-release
 case "$(dpkg --print-architecture)" in
     amd64)
         EXPORTER_ARCH="amd64"
+        AWS_ARCH="x86_64"
         ;;
     arm64)
         EXPORTER_ARCH="arm64"
+        AWS_ARCH="aarch64"
         ;;
     *)
         fail "Unsupported architecture: $(dpkg --print-architecture)"
@@ -109,6 +112,31 @@ apt-get install -y \
     ufw
 
 install -d -m 0755 /etc/apt/keyrings
+
+# ------------------------------------------------------------
+# 1.1 Install AWS CLI v2
+# ------------------------------------------------------------
+
+log "Installing AWS CLI v2"
+
+if ! command -v aws >/dev/null 2>&1; then
+    curl -fsSL \
+        "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" \
+        -o /tmp/awscliv2.zip
+
+    unzip -qo /tmp/awscliv2.zip -d /tmp
+
+    /tmp/aws/install
+
+    rm -rf /tmp/aws /tmp/awscliv2.zip
+else
+    log "AWS CLI already installed: $(aws --version)"
+fi
+
+aws --version
+
+log "AWS CLI installation verified"
+
 
 # ------------------------------------------------------------
 # 2. Install Node.js 24 LTS
@@ -235,29 +263,35 @@ if ! id "${APP_USER}" >/dev/null 2>&1; then
 fi
 
 install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${APP_DIR}"
+install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${APP_DIR}/releases"
 
-# Stop the current service before replacing application files.
+# Stop the current service before initializing a new release.
 systemctl stop "${APP_SERVICE}" 2>/dev/null || true
 
-# Preserve .env; replace tracked application files without deleting secrets.
-rsync -a --delete \
-    --exclude='.env' \
-    --exclude='node_modules/' \
-    "${SOURCE_DIR}/" "${APP_DIR}/"
+# Build into a versioned release directory. Keep .env outside releases.
+BOOTSTRAP_RELEASE="bootstrap-$(date +%Y%m%d%H%M%S)"
+RELEASE_DIR="${APP_DIR}/releases/${BOOTSTRAP_RELEASE}"
 
-chown -R "${APP_USER}:${APP_GROUP}" "${APP_DIR}"
+install -d -o "${APP_USER}" -g "${APP_GROUP}" -m 0750 "${RELEASE_DIR}"
+
+rsync -a --delete \\
+    --exclude='.env' \\
+    --exclude='node_modules/' \\
+    "${SOURCE_DIR}/" "${RELEASE_DIR}/"
+
+chown -R "${APP_USER}:${APP_GROUP}" "${RELEASE_DIR}"
 
 log "Installing production dependencies and building NestJS"
 
 runuser -u "${APP_USER}" -- bash -c "
     set -Eeuo pipefail
-    cd '${APP_DIR}'
+    cd '${RELEASE_DIR}'
     npm ci
     npx prisma generate
     npm run build
 "
 
-[[ -f "${APP_DIR}/dist/src/main.js" ]] ||
+[[ -f "${RELEASE_DIR}/dist/src/main.js" ]] ||
     fail "Expected build output dist/src/main.js was not created."
 
 # ------------------------------------------------------------
@@ -329,7 +363,7 @@ fi
 
 # Validate the URL without printing its credentials.
 runuser -u "${APP_USER}" -- \
-    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env node' <<'NODE'
+    bash -c "cd '${RELEASE_DIR}' && exec env APP_ENV_FILE='${ENV_FILE}' node" <<'NODE'
 const dotenv = require("dotenv");
 dotenv.config({ path: process.env.APP_ENV_FILE });
 
@@ -357,7 +391,7 @@ NODE
 log "Applying Prisma migrations"
 
 runuser -u "${APP_USER}" -- \
-    sh -c 'cd /opt/cloudrecover-api && exec env APP_ENV_FILE=/opt/cloudrecover-api/.env APP_DIR=/opt/cloudrecover-api node' <<'NODE'
+    bash -c "cd '${RELEASE_DIR}' && exec env APP_ENV_FILE='${ENV_FILE}' APP_DIR='${RELEASE_DIR}' node" <<'NODE'
 const dotenv = require("dotenv");
 const { spawnSync } = require("node:child_process");
 
@@ -395,6 +429,10 @@ NODE
 
 log "Configuring ${APP_SERVICE}.service"
 
+# Activate the bootstrapped release only after build and migration checks pass.
+ln -sfn "${RELEASE_DIR}" "${APP_DIR}/current"
+chown -h "${APP_USER}:${APP_GROUP}" "${APP_DIR}/current"
+
 cat > "/etc/systemd/system/${APP_SERVICE}.service" <<EOF
 [Unit]
 Description=CloudRecover NestJS API
@@ -405,10 +443,10 @@ Wants=network-online.target
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
-WorkingDirectory=${APP_DIR}
+WorkingDirectory=${APP_DIR}/current
 EnvironmentFile=${ENV_FILE}
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/node ${APP_DIR}/dist/src/main.js
+ExecStart=/usr/bin/node ${APP_DIR}/current/dist/src/main.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
