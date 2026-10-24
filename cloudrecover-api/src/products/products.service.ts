@@ -18,7 +18,7 @@ export class ProductsService {
 
   async create(dto: CreateProductDto) {
     const quantity = dto.quantity ?? 0;
-//good
+
     try {
       return await this.databaseService.product.create({
         data: {

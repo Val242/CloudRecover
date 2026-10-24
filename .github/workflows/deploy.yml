@@ -19,6 +19,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  
   deploy:
     name: Deploy to AWS EC2
     if: >-
@@ -96,6 +97,16 @@ jobs:
           aws s3 cp "$ARCHIVE" \
             "s3://${ARTIFACT_BUCKET}/cloudrecover-api/${DEPLOY_SHA}.tar.gz" \
             --sse AES256
+
+      - name: Verify SSM deployment target
+        run: |
+          aws sts get-caller-identity
+
+          aws ssm describe-instance-information \
+            --region eu-west-1 \
+            --filters "Key=InstanceIds,Values=$EC2_INSTANCE_ID" \
+            --query "InstanceInformationList[].{ID:InstanceId,Status:PingStatus}" \
+            --output table
 
       - name: Start deployment through Systems Manager
         id: ssm
