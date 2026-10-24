@@ -62,11 +62,11 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 
 ## Phase 5 — Monitoring and Observability
 
-- [ ] Provision the monitoring infrastructure.
-- [ ] Install Node Exporter on the application server.
-- [ ] Install and configure Prometheus.
+- [x] Provision the monitoring infrastructure.
+- [x] Install Node Exporter on the application server.
+- [x] Install and configure Prometheus.
 - [ ] Scrape application metrics and host metrics.
-- [ ] Install and configure Grafana.
+- [x] Install and configure Grafana.
 - [ ] Build application and infrastructure dashboards.
 - [ ] Configure alerting and notifications.
 - [ ] Test monitoring connectivity and alert delivery.
