@@ -81,8 +81,8 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Configure GitHub OIDC federation with AWS IAM.
 - [x] Deploy through Systems Manager.
 - [x] Run database migrations safely.
-- [ ] Restart the application service and verify health.
-- [ ] Test deployment failures and recovery.
+- [x] Restart the application service and verify health.
+- [x] Test deployment failures and recovery.
 
 ## Phase 7 — Cross-Region Backup and Recovery Preparation
 

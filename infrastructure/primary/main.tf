@@ -1,6 +1,8 @@
 module "vpc" {
   source = "../modules/network"
 
+  enable_nat_gateway = var.enable_nat_gateway
+
   # AWS Region and Availability Zones
   region              = var.region
   availability_zone_1 = var.availability_zone_1

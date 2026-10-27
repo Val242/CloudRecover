@@ -162,3 +162,9 @@ variable "database_route_table_name" {
   description = "Name tag for the database route table"
   type        = string
 }
+
+variable "enable_nat_gateway" {
+  description = "Whether to provision NAT Gateways"
+  type        = bool
+  default     = true
+}

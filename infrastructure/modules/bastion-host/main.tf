@@ -16,6 +16,11 @@ resource "aws_instance" "bastion" {
   }
 }
 
+resource "aws_ec2_instance_state" "bastion_state" {
+  instance_id = aws_instance.bastion.id
+  state       = "stopped"
+}
+
 resource "aws_key_pair" "bastion" {
   key_name   = var.key_name
   public_key = file(pathexpand(var.public_key_path))

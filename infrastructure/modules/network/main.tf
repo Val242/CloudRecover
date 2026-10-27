@@ -98,6 +98,7 @@ resource "aws_internet_gateway" "cloud-recover-IGW" {
 }
 
 resource "aws_eip" "nat-1" {
+  count  = var.enable_nat_gateway ? 1 : 0
   domain = "vpc"
 
   tags = {
@@ -106,6 +107,7 @@ resource "aws_eip" "nat-1" {
 }
 
 resource "aws_eip" "nat-2" {
+  count  = var.enable_nat_gateway ? 1 : 0
   domain = "vpc"
 
   tags = {
@@ -115,7 +117,8 @@ resource "aws_eip" "nat-2" {
 
 
 resource "aws_nat_gateway" "cloud-recover-web-monit-NGW-1" {
-  allocation_id = aws_eip.nat-1.id
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat-1[0].id
   subnet_id     = aws_subnet.cloud-recover-pub-1.id
   tags = {
     Name = var.nat_gateway_1_name
@@ -124,7 +127,8 @@ resource "aws_nat_gateway" "cloud-recover-web-monit-NGW-1" {
 }
 
 resource "aws_nat_gateway" "cloud-recover-web-monit-NGW-2" {
-  allocation_id = aws_eip.nat-2.id
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat-2[0].id
   subnet_id     = aws_subnet.cloud-recover-pub-2.id
   tags = {
     Name = var.nat_gateway_2_name
@@ -148,10 +152,24 @@ resource "aws_route_table" "cloud-recover-pub-RT" {
 resource "aws_route_table" "cloud-recover-priv-RT-1" {
   vpc_id = aws_vpc.cloud-recover.id
 
-  route {
-    cidr_block     = var.private_route_1_cidr
-    nat_gateway_id = aws_nat_gateway.cloud-recover-web-monit-NGW-1.id
-  }
+  route = var.enable_nat_gateway ? [
+    {
+      carrier_gateway_id         = null
+      cidr_block                 = var.private_route_1_cidr
+      core_network_arn           = null
+      destination_prefix_list_id = null
+      egress_only_gateway_id     = null
+      gateway_id                 = null
+      ipv6_cidr_block            = null
+      local_gateway_id           = null
+      nat_gateway_id             = aws_nat_gateway.cloud-recover-web-monit-NGW-1[0].id
+      network_interface_id       = null
+      odb_network_arn            = null
+      transit_gateway_id         = null
+      vpc_endpoint_id            = null
+      vpc_peering_connection_id  = null
+    }
+  ] : []
 
   tags = {
     Name = var.private_route_table_1_name
@@ -161,14 +179,48 @@ resource "aws_route_table" "cloud-recover-priv-RT-1" {
 resource "aws_route_table" "cloud-recover-priv-RT-2" {
   vpc_id = aws_vpc.cloud-recover.id
 
-  route {
-    cidr_block     = var.private_route_2_cidr
-    nat_gateway_id = aws_nat_gateway.cloud-recover-web-monit-NGW-2.id
-  }
+  route = var.enable_nat_gateway ? [
+    {
+      carrier_gateway_id         = null
+      cidr_block                 = var.private_route_2_cidr
+      core_network_arn           = null
+      destination_prefix_list_id = null
+      egress_only_gateway_id     = null
+      gateway_id                 = null
+      ipv6_cidr_block            = null
+      local_gateway_id           = null
+      nat_gateway_id             = aws_nat_gateway.cloud-recover-web-monit-NGW-2[0].id
+      network_interface_id       = null
+      odb_network_arn            = null
+      transit_gateway_id         = null
+      vpc_endpoint_id            = null
+      vpc_peering_connection_id  = null
+    }
+  ] : []
 
   tags = {
     Name = var.private_route_table_2_name
   }
+}
+
+moved {
+  from = aws_eip.nat-1
+  to   = aws_eip.nat-1[0]
+}
+
+moved {
+  from = aws_eip.nat-2
+  to   = aws_eip.nat-2[0]
+}
+
+moved {
+  from = aws_nat_gateway.cloud-recover-web-monit-NGW-1
+  to   = aws_nat_gateway.cloud-recover-web-monit-NGW-1[0]
+}
+
+moved {
+  from = aws_nat_gateway.cloud-recover-web-monit-NGW-2
+  to   = aws_nat_gateway.cloud-recover-web-monit-NGW-2[0]
 }
 
 resource "aws_route_table" "cloud-recover-db-RT" {

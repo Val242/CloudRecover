@@ -50,22 +50,22 @@ output "internet_gateway_id" {
 
 output "nat_gateway_az1_eip_id" {
   description = "ID of the Elastic IP allocated to NAT Gateway 1"
-  value       = aws_eip.nat-1.id
+  value       = var.enable_nat_gateway ? aws_eip.nat-1[0].id : null
 }
 
 output "nat_gateway_az2_eip_id" {
   description = "ID of the Elastic IP allocated to NAT Gateway 2"
-  value       = aws_eip.nat-2.id
+  value       = var.enable_nat_gateway ? aws_eip.nat-2[0].id : null
 }
 
 output "nat_gateway_az1_id" {
   description = "ID of NAT Gateway 1 for outbound internet access"
-  value       = aws_nat_gateway.cloud-recover-web-monit-NGW-1.id
+  value       = var.enable_nat_gateway ? aws_nat_gateway.cloud-recover-web-monit-NGW-1[0].id : null
 }
 
 output "nat_gateway_az2_id" {
   description = "ID of NAT Gateway 2 for outbound internet access"
-  value       = aws_nat_gateway.cloud-recover-web-monit-NGW-2.id
+  value       = var.enable_nat_gateway ? aws_nat_gateway.cloud-recover-web-monit-NGW-2[0].id : null
 }
 
 output "public_route_table_id" {

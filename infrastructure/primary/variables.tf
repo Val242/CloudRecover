@@ -128,6 +128,12 @@ variable "private_route_2_cidr" {
   type        = string
 }
 
+variable "enable_nat_gateway" {
+  description = "Whether to provision NAT Gateways for private subnet outbound internet access"
+  type        = bool
+  default     = true
+}
+
 # ==========================================
 # Subnet Resource Names
 # ==========================================
