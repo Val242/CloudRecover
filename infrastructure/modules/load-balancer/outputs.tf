@@ -27,3 +27,13 @@ output "alb_listener_arn" {
   description = "ARN of the HTTP listener"
   value       = aws_lb_listener.http.arn
 }
+
+output "prometheus_listener_arn" {
+  description = "ARN of the Prometheus listener"
+  value       = aws_lb_listener.prometheus.arn
+}
+
+output "grafana_listener_arn" {
+  description = "ARN of the Grafana listener"
+  value       = aws_lb_listener.grafana.arn
+}

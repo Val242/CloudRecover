@@ -87,6 +87,24 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http_from_internet" {
   description       = "Allow public HTTP traffic"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "alb_prometheus_from_admin" {
+  security_group_id = aws_security_group.alb.id
+  cidr_ipv4         = var.my_ip
+  from_port         = 9090
+  ip_protocol       = "tcp"
+  to_port           = 9090
+  description       = "Allow administrator access to Prometheus through the ALB"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_grafana_from_admin" {
+  security_group_id = aws_security_group.alb.id
+  cidr_ipv4         = var.my_ip
+  from_port         = 3000
+  ip_protocol       = "tcp"
+  to_port           = 3000
+  description       = "Allow administrator access to Grafana through the ALB"
+}
+
 resource "aws_vpc_security_group_egress_rule" "alb_to_web" {
   security_group_id            = aws_security_group.alb.id
   referenced_security_group_id = aws_security_group.web.id

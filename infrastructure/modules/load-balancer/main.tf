@@ -108,6 +108,28 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+resource "aws_lb_listener" "prometheus" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = var.prometheus_target_port
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.prometheus_tg.arn
+  }
+}
+
+resource "aws_lb_listener" "grafana" {
+  load_balancer_arn = aws_lb.app_alb.arn
+  port              = var.grafana_target_port
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.grafana_tg.arn
+  }
+}
+
 
 resource "aws_lb_target_group_attachment" "app" {
   for_each = {
