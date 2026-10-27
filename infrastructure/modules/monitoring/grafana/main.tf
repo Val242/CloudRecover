@@ -3,7 +3,7 @@ resource "aws_instance"  "grafana-server"  {
   instance_type = var.instance_type
   subnet_id     = var.subnet_id
   key_name      = aws_key_pair.cloudrecover-private-server.key_name
-  security_groups = [var.grafana_security_group_id]
+  vpc_security_group_ids = [ var.grafana_security_group_id ]
   tags = {
     Name = var.instance_name
   }

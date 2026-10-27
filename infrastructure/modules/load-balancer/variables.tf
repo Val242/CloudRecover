@@ -4,8 +4,18 @@ variable "alb_name" {
   type        = string
 }
 
-variable "target_group_name" {
+variable "app_target_group_name" {
   description = "Name of the application target group"
+  type        = string
+}
+
+variable "prometheus_target_group_name" {
+  description = "Name of the Prometheus target group"
+  type        = string
+}
+
+variable "grafana_target_group_name" {
+  description = "Name of the Grafana target group"
   type        = string
 }
 
@@ -29,21 +39,55 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "instance_ids" {
-  description = "EC2 instance IDs to register with the target group"
+variable "app_instance_ids" {
+  description = "Application EC2 instance IDs to register with the application target group"
   type        = list(string)
 }
 
-variable "target_port" {
+variable "prometheus_instance_ids" {
+  description = "Prometheus EC2 instance IDs to register with the Prometheus target group"
+  type        = list(string)
+}
+
+variable "grafana_instance_ids" {
+  description = "Grafana EC2 instance IDs to register with the Grafana target group"
+  type        = list(string)
+}
+
+variable "app_target_port" {
   description = "Port on which the application listens"
   type        = number
   default     = 3000
 }
 
-variable "health_check_path" {
+variable "prometheus_target_port" {
+  description = "Port on which Prometheus listens"
+  type        = number
+  default     = 9090
+}
+
+variable "grafana_target_port" {
+  description = "Port on which Grafana listens"
+  type        = number
+  default     = 3000
+}
+
+variable "app_health_check_path" {
   description = "HTTP path used to check application health"
   type        = string
   default     = "/"
+}
+
+variable "prometheus_health_check_path" {
+  description = "HTTP path used to check Prometheus health"
+  type        = string
+  default     = "/-/healthy"
+}
+
+variable "grafana_health_check_path" {
+  description = "HTTP path used to check Grafana health"
+  type        = string
+  default     = "/api/health"
 }
 
 variable "environment" {

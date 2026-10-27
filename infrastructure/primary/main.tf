@@ -78,12 +78,17 @@ module "load_balancer" {
   source = "../modules/load-balancer"
 
   alb_name          = "${var.project}-${var.environment}-alb"
-  target_group_name = "${var.project}-${var.environment}-tg"
+  # Keep the existing application target group name to avoid replacing it.
+  app_target_group_name        = "${var.project}-${var.environment}-tg"
+  prometheus_target_group_name = "${var.project}-${var.environment}-prom-tg"
+  grafana_target_group_name    = "${var.project}-${var.environment}-grafana-tg"
   public_subnet_ids = [
     module.vpc.public_subnet_az1_id,
     module.vpc.public_subnet_az2_id
   ]
-  instance_ids          = [module.app_server.app_server_instance_id]
+  app_instance_ids        = [module.app_server.app_server_instance_id]
+  prometheus_instance_ids = [module.prometheus_server.prometheus_server_instance_id]
+  grafana_instance_ids    = [module.grafana_server.grafana_server_instance_id]
   environment           = var.environment
   vpc_id                = module.vpc.vpc_id
   alb_security_group_id = module.security_groups.alb_security_group_id

@@ -96,6 +96,24 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_web" {
   description                  = "Forward traffic to application instances"
 }
 
+resource "aws_vpc_security_group_egress_rule" "alb_to_prometheus" {
+  security_group_id            = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.prometheus.id
+  from_port                    = 9090
+  ip_protocol                  = "tcp"
+  to_port                      = 9090
+  description                  = "Forward traffic and health checks to Prometheus"
+}
+
+resource "aws_vpc_security_group_egress_rule" "alb_to_grafana" {
+  security_group_id            = aws_security_group.alb.id
+  referenced_security_group_id = aws_security_group.grafana.id
+  from_port                    = 3000
+  ip_protocol                  = "tcp"
+  to_port                      = 3000
+  description                  = "Forward traffic and health checks to Grafana"
+}
+
 resource "aws_security_group" "bastion" {
   name        = "${var.project}-${var.environment}-bastion-sg"
   description = "Security group for the CloudRecover bastion host"
@@ -156,6 +174,15 @@ resource "aws_vpc_security_group_ingress_rule" "prometheus_ui_from_my_ip" {
   description       = "Prometheus UI access from the administrator IP"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "prometheus_from_alb" {
+  security_group_id            = aws_security_group.prometheus.id
+  referenced_security_group_id = aws_security_group.alb.id
+  from_port                    = 9090
+  ip_protocol                  = "tcp"
+  to_port                      = 9090
+  description                  = "Prometheus traffic and health checks from the ALB"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "prometheus_from_grafana" {
   security_group_id            = aws_security_group.prometheus.id
   referenced_security_group_id = aws_security_group.grafana.id
@@ -210,6 +237,15 @@ resource "aws_vpc_security_group_ingress_rule" "grafana_ui_from_my_ip" {
   ip_protocol       = "tcp"
   to_port           = 3000
   description       = "Grafana UI access from the administrator IP"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "grafana_from_alb" {
+  security_group_id            = aws_security_group.grafana.id
+  referenced_security_group_id = aws_security_group.alb.id
+  from_port                    = 3000
+  ip_protocol                  = "tcp"
+  to_port                      = 3000
+  description                  = "Grafana traffic and health checks from the ALB"
 }
 
 resource "aws_vpc_security_group_egress_rule" "grafana_outbound_ipv4" {

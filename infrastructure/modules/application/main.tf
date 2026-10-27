@@ -3,7 +3,7 @@ resource "aws_instance"  "app-server"  {
   instance_type = var.instance_type
   subnet_id     = var.subnet_id
   key_name      = aws_key_pair.cloudrecover-private-server.key_name
-  security_groups = [var.app_server_security_group_id]
+  vpc_security_group_ids = [ var.app_server_security_group_id ]
 
     root_block_device {
     volume_size = 20

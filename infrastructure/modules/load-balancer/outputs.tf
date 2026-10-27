@@ -8,9 +8,19 @@ output "alb_dns_name" {
   value       = aws_lb.app_alb.dns_name
 }
 
-output "target_group_arn" {
+output "app_target_group_arn" {
   description = "ARN of the application target group"
   value       = aws_lb_target_group.app_tg.arn
+}
+
+output "prometheus_target_group_arn" {
+  description = "ARN of the Prometheus target group"
+  value       = aws_lb_target_group.prometheus_tg.arn
+}
+
+output "grafana_target_group_arn" {
+  description = "ARN of the Grafana target group"
+  value       = aws_lb_target_group.grafana_tg.arn
 }
 
 output "alb_listener_arn" {
