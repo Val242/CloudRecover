@@ -4,7 +4,7 @@ resource "aws_instance" "bastion" {
   subnet_id              = var.subnet_id
   key_name               = aws_key_pair.bastion.key_name
   vpc_security_group_ids = [var.bastion_security_group_id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   root_block_device {
     volume_size = 20

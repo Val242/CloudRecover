@@ -12,7 +12,7 @@ resource "aws_instance"  "prometheus-server"  {
 
 resource "aws_ec2_instance_state" "prometheus-server-state" {
   instance_id = aws_instance.prometheus-server.id
-  state       = "running"
+  state       = "stopped"
 }
 
 resource "aws_key_pair" "cloudrecover-private-server" {

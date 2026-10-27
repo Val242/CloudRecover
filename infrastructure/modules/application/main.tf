@@ -16,7 +16,7 @@ resource "aws_instance"  "app-server"  {
 
 resource "aws_ec2_instance_state" "app-server-state" {
   instance_id = aws_instance.app-server.id
-  state       = "running"
+  state       = "stopped"
 }
 
 resource "aws_key_pair" "cloudrecover-private-server" {
