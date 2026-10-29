@@ -4,7 +4,7 @@ resource "aws_instance" "bastion" {
   subnet_id              = var.subnet_id
   key_name               = aws_key_pair.bastion.key_name
   vpc_security_group_ids = [var.bastion_security_group_id]
-  associate_public_ip_address = false
+  associate_public_ip_address = true
 
   root_block_device {
     volume_size = 20
@@ -18,7 +18,7 @@ resource "aws_instance" "bastion" {
 
 resource "aws_ec2_instance_state" "bastion_state" {
   instance_id = aws_instance.bastion.id
-  state       = "stopped"
+  state       = "running"
 }
 
 resource "aws_key_pair" "bastion" {
