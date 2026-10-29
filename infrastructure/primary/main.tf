@@ -168,7 +168,5 @@ module "database_backup" {
 
   db_instance_identifier = module.database.db_instance_identifier
   db_snapshot_identifier = "${var.project}-${var.environment}-snapshot"
-
-  project     = var.project
-  environment = var.environment
+  environment            = var.environment
 }
