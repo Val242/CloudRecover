@@ -19,7 +19,7 @@ resource "aws_db_instance" "cloudrecover_database" {
   snapshot_identifier = var.snapshot_identifier
   db_subnet_group_name   = aws_db_subnet_group.cloudrecover_database.name
   vpc_security_group_ids = [var.rds_security_group_id]
-  skip_final_snapshot    = false
+  skip_final_snapshot    = true
 
 
   tags = {
