@@ -76,6 +76,19 @@ module "security_groups" {
   environment = var.environment
 }
 
+module "bastion" {
+  source                    = "../modules/bastion-host"
+  subnet_id                 = module.vpc.public_subnet_az1_id
+  bastion_security_group_id = module.security_groups.bastion_security_group_id
+  instance_type             = var.app_instance_type
+  instance_name             = "Bastion Host"
+  ami_id                    = var.ami_id
+  key_name                  = var.key_name
+  project                   = var.project
+  environment               = var.environment
+  public_key_path           = var.public_key_path
+}
+
 module "load_balancer" {
   source = "../modules/load-balancer"
 
@@ -125,4 +138,5 @@ module "database" {
   ]
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
+  snapshot_identifier = "${var.project}-primary-snapshot"
 }

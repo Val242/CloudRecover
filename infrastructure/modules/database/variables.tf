@@ -60,3 +60,9 @@ variable "allowed_cidr_blocks" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "snapshot_identifier" {
+  description = "RDS snapshot identifier used to restore the database"
+  type        = string
+  default     = null
+}

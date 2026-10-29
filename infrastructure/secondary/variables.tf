@@ -279,3 +279,9 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "snapshot_identifier" {
+  description = "Identifier of the RDS snapshot used to restore the recovery database"
+  type        = string
+  default     = null
+}

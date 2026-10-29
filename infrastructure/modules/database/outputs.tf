@@ -17,3 +17,8 @@ output "db_instance_identifier" {
   description = "Identifier of the CloudRecover RDS instance"
   value       = aws_db_instance.cloudrecover_database.identifier
 }
+
+output "snapshot_identifier" {
+  description = "Snapshot identifier used for database restoration"
+  value       = var.snapshot_identifier
+}
