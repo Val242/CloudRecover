@@ -12,3 +12,8 @@ output "id" {
   description = "The RDS instance ID"
   value       = aws_db_instance.cloudrecover_database.id
 }
+
+output "db_instance_identifier" {
+  description = "Identifier of the CloudRecover RDS instance"
+  value       = aws_db_instance.cloudrecover_database.identifier
+}

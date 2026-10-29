@@ -79,7 +79,7 @@ module "security_groups" {
 module "load_balancer" {
   source = "../modules/load-balancer"
 
-  alb_name          = "${var.project}-${var.environment}-alb"
+  alb_name = "${var.project}-${var.environment}-alb"
   # Keep the existing application target group name to avoid replacing it.
   app_target_group_name        = "${var.project}-${var.environment}-tg"
   prometheus_target_group_name = "${var.project}-${var.environment}-prom-tg"
@@ -91,35 +91,35 @@ module "load_balancer" {
   app_instance_ids        = [module.app_server.app_server_instance_id]
   prometheus_instance_ids = [module.prometheus_server.prometheus_server_instance_id]
   grafana_instance_ids    = [module.grafana_server.grafana_server_instance_id]
-  environment           = var.environment
-  vpc_id                = module.vpc.vpc_id
-  alb_security_group_id = module.security_groups.alb_security_group_id
+  environment             = var.environment
+  vpc_id                  = module.vpc.vpc_id
+  alb_security_group_id   = module.security_groups.alb_security_group_id
 }
 
 module "bastion" {
-  source = "../modules/bastion-host"
-  subnet_id = module.vpc.public_subnet_az1_id
+  source                    = "../modules/bastion-host"
+  subnet_id                 = module.vpc.public_subnet_az1_id
   bastion_security_group_id = module.security_groups.bastion_security_group_id
-  instance_type = var.app_instance_type
-  instance_name = "Bastion Host"
-  ami_id = var.ami_id
-  key_name = var.key_name
-  project = var.project
-  environment = var.environment
-  public_key_path = var.public_key_path
+  instance_type             = var.app_instance_type
+  instance_name             = "Bastion Host"
+  ami_id                    = var.ami_id
+  key_name                  = var.key_name
+  project                   = var.project
+  environment               = var.environment
+  public_key_path           = var.public_key_path
 }
 
 module "app_server" {
   source = "../modules/application"
 
-  instance_name = var.app_instance_name
-  ami_id        = var.ami_id
-  instance_type = var.app_instance_type
-  subnet_id     = module.vpc.app_subnet_az1_id
+  instance_name                = var.app_instance_name
+  ami_id                       = var.ami_id
+  instance_type                = var.app_instance_type
+  subnet_id                    = module.vpc.app_subnet_az1_id
   app_server_security_group_id = module.security_groups.web_security_group_id
-  key_name      = "${var.project}-${var.environment}-app-key"
-  app_public_key_path = var.app_public_key_path
-  environment   = var.environment
+  key_name                     = "${var.project}-${var.environment}-app-key"
+  app_public_key_path          = var.app_public_key_path
+  environment                  = var.environment
 
   # Add the application security group input required by your module.
   # For example:
@@ -146,7 +146,7 @@ module "grafana_server" {
   subnet_id                 = module.vpc.monitoring_subnet_az1_id
   grafana_security_group_id = module.security_groups.grafana_security_group_id
   key_name                  = "${var.project}-${var.environment}-grafana-key"
-  grafana_public_key_path    = var.grafana_public_key_path
+  grafana_public_key_path   = var.grafana_public_key_path
   environment               = var.environment
 }
 
@@ -161,4 +161,14 @@ module "database" {
   ]
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
+}
+
+module "database_backup" {
+  source = "../modules/database-backup"
+
+  db_instance_identifier = module.database.db_instance_identifier
+  db_snapshot_identifier = "${var.project}-${var.environment}-snapshot"
+
+  project     = var.project
+  environment = var.environment
 }
