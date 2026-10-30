@@ -57,7 +57,7 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Configure application environment variables and database connectivity.
 - [x] Configure the systemd service.
 - [x] Deploy the NestJS API.
-- [ ] Configure the ALB target group and health checks.
+- [x] Configure the ALB target group and health checks.
 - [x] Verify application readiness and database connectivity.
 
 ## Phase 5 — Monitoring and Observability
@@ -65,11 +65,11 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Provision the monitoring infrastructure.
 - [x] Install Node Exporter on the application server.
 - [x] Install and configure Prometheus.
-- [ ] Scrape application metrics and host metrics.
+- [x] Scrape application metrics and host metrics.
 - [x] Install and configure Grafana.
-- [ ] Build application and infrastructure dashboards.
-- [ ] Configure alerting and notifications.
-- [ ] Test monitoring connectivity and alert delivery.
+- [x] Build application and infrastructure dashboards.
+- [x] Configure alerting and notifications.
+- [x] Test monitoring connectivity and alert delivery.
 
 ## Phase 6 — CI/CD Automation
 
@@ -93,7 +93,7 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 - [x] Maintain separate Terraform states for primary and recovery infrastructure.
 - [x] Configure RDS snapshots and cross-region snapshot copies.
 - [x] Configure encryption and KMS permissions for snapshot copying and restoration.
-- [ ] Define recovery-region configuration and secrets handling.
+- [x] Define recovery-region configuration and secrets handling.
 - [ ] Document recovery prerequisites and resource dependencies.
 
 ## Phase 8 — Automated Recovery Workflow
