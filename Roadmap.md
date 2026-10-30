@@ -86,13 +86,13 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 
 ## Phase 7 — Cross-Region Backup and Recovery Preparation
 
-- [ ] Select the primary and recovery AWS Regions.
-- [ ] Design separate VPCs and non-overlapping CIDR ranges.
-- [ ] Configure Terraform root configurations for both Regions.
-- [ ] Use reusable Terraform modules for networking, security, application, database, load balancing, and monitoring.
-- [ ] Maintain separate Terraform states for primary and recovery infrastructure.
-- [ ] Configure RDS snapshots and cross-region snapshot copies.
-- [ ] Configure encryption and KMS permissions for snapshot copying and restoration.
+- [x] Select the primary and recovery AWS Regions.
+- [x] Design separate VPCs and non-overlapping CIDR ranges.
+- [x] Configure Terraform root configurations for both Regions.
+- [x] Use reusable Terraform modules for networking, security, application, database, load balancing, and monitoring.
+- [x] Maintain separate Terraform states for primary and recovery infrastructure.
+- [x] Configure RDS snapshots and cross-region snapshot copies.
+- [x] Configure encryption and KMS permissions for snapshot copying and restoration.
 - [ ] Define recovery-region configuration and secrets handling.
 - [ ] Document recovery prerequisites and resource dependencies.
 

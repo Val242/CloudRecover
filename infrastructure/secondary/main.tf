@@ -138,5 +138,5 @@ module "database" {
   ]
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
-  snapshot_identifier   = "${var.project}-primary-snapshot"
+  snapshot_identifier   = var.snapshot_identifier
 }
