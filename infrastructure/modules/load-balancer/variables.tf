@@ -12,11 +12,13 @@ variable "app_target_group_name" {
 variable "prometheus_target_group_name" {
   description = "Name of the Prometheus target group"
   type        = string
+  default = null
 }
 
 variable "grafana_target_group_name" {
   description = "Name of the Grafana target group"
   type        = string
+  default = null
 }
 
 variable "public_subnet_ids" {
@@ -47,11 +49,13 @@ variable "app_instance_ids" {
 variable "prometheus_instance_ids" {
   description = "Prometheus EC2 instance IDs to register with the Prometheus target group"
   type        = list(string)
+  default = []
 }
 
 variable "grafana_instance_ids" {
   description = "Grafana EC2 instance IDs to register with the Grafana target group"
   type        = list(string)
+  default = []
 }
 
 variable "app_target_port" {
@@ -94,4 +98,11 @@ variable "environment" {
   description = "Deployment environment, such as primary or recovery"
   type        = string
 }
+
+variable "enable_monitoring" {
+  description = "Whether to create Grafana and Prometheus load balancer resources"
+  type        = bool
+  default     = false
+}
+
 

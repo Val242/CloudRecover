@@ -79,6 +79,7 @@ module "security_groups" {
 module "load_balancer" {
   source = "../modules/load-balancer"
 
+  enable_monitoring = true
   alb_name = "${var.project}-${var.environment}-alb"
   # Keep the existing application target group name to avoid replacing it.
   app_target_group_name        = "${var.project}-${var.environment}-tg"

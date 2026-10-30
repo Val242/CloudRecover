@@ -45,6 +45,7 @@ resource "aws_lb_target_group" "app_tg" {
 # prometheus target group
 
 resource "aws_lb_target_group" "prometheus_tg" {
+  count = var.enable_monitoring ? 1 : 0
   name        = var.prometheus_target_group_name
   port        = var.prometheus_target_port
   protocol    = "HTTP"
@@ -62,6 +63,7 @@ resource "aws_lb_target_group" "prometheus_tg" {
     unhealthy_threshold = 3
     matcher             = "200"
   }
+  
 
   tags = {
     Name        = var.prometheus_target_group_name
@@ -72,6 +74,7 @@ resource "aws_lb_target_group" "prometheus_tg" {
 
 # grafana target group
 resource "aws_lb_target_group" "grafana_tg" {
+  count = var.enable_monitoring ? 1 : 0
   name        = var.grafana_target_group_name
   port        = var.grafana_target_port
   protocol    = "HTTP"
@@ -109,24 +112,26 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener" "prometheus" {
+    count = var.enable_monitoring ? 1 : 0
   load_balancer_arn = aws_lb.app_alb.arn
   port              = var.prometheus_target_port
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.prometheus_tg.arn
+    target_group_arn = aws_lb_target_group.prometheus_tg[0].arn
   }
 }
 
 resource "aws_lb_listener" "grafana" {
+    count = var.enable_monitoring ? 1 : 0
   load_balancer_arn = aws_lb.app_alb.arn
   port              = var.grafana_target_port
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.grafana_tg.arn
+    target_group_arn = aws_lb_target_group.grafana_tg[0].arn
   }
 }
 
@@ -143,23 +148,22 @@ resource "aws_lb_target_group_attachment" "app" {
 }
 
 resource "aws_lb_target_group_attachment" "prometheus" {
-  for_each = {
-    for index, instance_id in var.prometheus_instance_ids :
-    tostring(index) => instance_id
-  }
+ for_each = var.enable_monitoring ? {
+    for index, id in var.prometheus_instance_ids : index => id
+  } : {}
 
-  target_group_arn = aws_lb_target_group.prometheus_tg.arn
+
+  target_group_arn = aws_lb_target_group.prometheus_tg[0].arn
   target_id        = each.value
   port             = var.prometheus_target_port
 }
 
 resource "aws_lb_target_group_attachment" "grafana" {
-  for_each = {
-    for index, instance_id in var.grafana_instance_ids :
-    tostring(index) => instance_id
-  }
+   for_each = var.enable_monitoring ? {
+    for index, id in var.grafana_instance_ids : index => id
+  } : {}
 
-  target_group_arn = aws_lb_target_group.grafana_tg.arn
+  target_group_arn = aws_lb_target_group.grafana_tg[0].arn
   target_id        = each.value
   port             = var.grafana_target_port
 }

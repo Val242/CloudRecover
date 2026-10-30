@@ -92,18 +92,18 @@ module "bastion" {
 module "load_balancer" {
   source = "../modules/load-balancer"
 
+  enable_monitoring = false
   alb_name          = "${var.project}-${var.environment}-alb"
   # Keep the existing application target group name to avoid replacing it.
-  app_target_group_name        = "${var.project}-${var.environment}-tg"
-  prometheus_target_group_name = "${var.project}-${var.environment}-prom-tg"
-  grafana_target_group_name    = "${var.project}-${var.environment}-grafana-tg"
+  app_target_group_name = "${var.project}-${var.environment}-tg"
+
   public_subnet_ids = [
     module.vpc.public_subnet_az1_id,
     module.vpc.public_subnet_az2_id
   ]
-  app_instance_ids        = [module.app_server.app_server_instance_id]
-  prometheus_instance_ids = [module.prometheus_server.prometheus_server_instance_id]
-  grafana_instance_ids    = [module.grafana_server.grafana_server_instance_id]
+  app_instance_ids = [module.app_server.app_server_instance_id]
+  # prometheus_instance_ids = [module.prometheus_server.prometheus_server_instance_id]
+  # grafana_instance_ids    = [module.grafana_server.grafana_server_instance_id]
   environment           = var.environment
   vpc_id                = module.vpc.vpc_id
   alb_security_group_id = module.security_groups.alb_security_group_id
@@ -114,14 +114,14 @@ module "load_balancer" {
 module "app_server" {
   source = "../modules/application"
 
-  instance_name = var.app_instance_name
-  ami_id        = var.ami_id
-  instance_type = var.app_instance_type
-  subnet_id     = module.vpc.app_subnet_az1_id
+  instance_name                = var.app_instance_name
+  ami_id                       = var.ami_id
+  instance_type                = var.app_instance_type
+  subnet_id                    = module.vpc.app_subnet_az1_id
   app_server_security_group_id = module.security_groups.web_security_group_id
-  key_name      = "${var.project}-${var.environment}-app-key"
-  app_public_key_path = var.app_public_key_path
-  environment   = var.environment
+  key_name                     = "${var.project}-${var.environment}-app-key"
+  app_public_key_path          = var.app_public_key_path
+  environment                  = var.environment
 }
 
 
@@ -138,5 +138,5 @@ module "database" {
   ]
   vpc_id                = module.vpc.vpc_id
   rds_security_group_id = module.security_groups.rds_security_group_id
-  snapshot_identifier = "${var.project}-primary-snapshot"
+  snapshot_identifier   = "${var.project}-primary-snapshot"
 }

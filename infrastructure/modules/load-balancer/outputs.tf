@@ -15,12 +15,12 @@ output "app_target_group_arn" {
 
 output "prometheus_target_group_arn" {
   description = "ARN of the Prometheus target group"
-  value       = aws_lb_target_group.prometheus_tg.arn
+  value       = try(aws_lb_target_group.prometheus_tg[0].arn, null)
 }
 
 output "grafana_target_group_arn" {
   description = "ARN of the Grafana target group"
-  value       = aws_lb_target_group.grafana_tg.arn
+  value       = try(aws_lb_target_group.grafana_tg[0].arn, null)
 }
 
 output "alb_listener_arn" {
@@ -30,10 +30,10 @@ output "alb_listener_arn" {
 
 output "prometheus_listener_arn" {
   description = "ARN of the Prometheus listener"
-  value       = aws_lb_listener.prometheus.arn
+  value       = try(aws_lb_listener.prometheus[0].arn, null)
 }
 
 output "grafana_listener_arn" {
   description = "ARN of the Grafana listener"
-  value       = aws_lb_listener.grafana.arn
+ value       = try(aws_lb_listener.grafana[0].arn, null)
 }
