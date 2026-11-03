@@ -52,15 +52,15 @@ jobs:
         working-directory: infrastructure/secondary
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Validate Recovery Confirmation
         run: |
           if [[ "${{ inputs.confirm_recovery }}" != "true" ]]; then
             echo "Recovery confirmation is required."
             exit 1
           fi
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
