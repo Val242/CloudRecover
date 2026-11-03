@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       snapshot_identifier:
-        description: 'RDS snapshot identifier to restore'
+        description: 'Source RDS snapshot identifier in the primary region (used if no recovery copy exists)'
         required: true
         type: string
 
@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  PRIMARY_REGION: ${{ vars.PRIMARY_REGION }}
+  PRIMARY_REGION: ${{ vars.PRIMARY_REGION || 'eu-west-1' }}
   DR_REGION: ${{ vars.DR_REGION }}
   TF_STATE_REGION: ${{ vars.TF_STATE_REGION }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
@@ -44,6 +44,7 @@ jobs:
   dr-recovery:
     name: Execute DR Recovery
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     environment: recovery
 
@@ -73,20 +74,84 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Validate Recovery Snapshot
+      - name: Reuse or Copy Recovery Snapshot
+        id: recovery_snapshot
+        env:
+          SOURCE_SNAPSHOT_IDENTIFIER: ${{ inputs.snapshot_identifier }}
         run: |
-          STATUS=$(aws rds describe-db-snapshots \
-            --region "$DR_REGION" \
-            --db-snapshot-identifier "${{ inputs.snapshot_identifier }}" \
-            --query 'DBSnapshots[0].Status' \
-            --output text)
+          set -euo pipefail
 
-          if [[ "$STATUS" != "available" ]]; then
-            echo "Snapshot is not available. Current status: $STATUS"
-            exit 1
+          RECOVERY_SNAPSHOT_IDENTIFIER="cloudrecover-recovery-snapshot"
+
+          get_snapshot_status() {
+            aws rds describe-db-snapshots \
+              --region "$1" \
+              --filters "Name=db-snapshot-id,Values=$2" \
+              --query 'DBSnapshots[0].Status' \
+              --output text
+          }
+
+          DESTINATION_STATUS=$(get_snapshot_status "$DR_REGION" "$RECOVERY_SNAPSHOT_IDENTIFIER")
+
+          if [[ "$DESTINATION_STATUS" == "available" ]]; then
+            echo "Reusing available snapshot $RECOVERY_SNAPSHOT_IDENTIFIER in $DR_REGION."
+          else
+            if [[ "$DESTINATION_STATUS" == "None" || -z "$DESTINATION_STATUS" ]]; then
+              SOURCE_STATUS=$(get_snapshot_status "$PRIMARY_REGION" "$SOURCE_SNAPSHOT_IDENTIFIER")
+
+              if [[ "$SOURCE_STATUS" != "available" ]]; then
+                echo "Source snapshot $SOURCE_SNAPSHOT_IDENTIFIER is not available in $PRIMARY_REGION (status: $SOURCE_STATUS)." >&2
+                exit 1
+              fi
+
+              SOURCE_SNAPSHOT_ARN=$(aws rds describe-db-snapshots \
+                --region "$PRIMARY_REGION" \
+                --filters "Name=db-snapshot-id,Values=$SOURCE_SNAPSHOT_IDENTIFIER" \
+                --query 'DBSnapshots[0].DBSnapshotArn' \
+                --output text)
+
+              echo "Copying $SOURCE_SNAPSHOT_IDENTIFIER from $PRIMARY_REGION to $DR_REGION as $RECOVERY_SNAPSHOT_IDENTIFIER."
+              aws rds copy-db-snapshot \
+                --source-db-snapshot-identifier "$SOURCE_SNAPSHOT_ARN" \
+                --target-db-snapshot-identifier "$RECOVERY_SNAPSHOT_IDENTIFIER" \
+                --source-region "$PRIMARY_REGION" \
+                --region "$DR_REGION" \
+                --copy-tags
+            else
+              echo "Recovery snapshot exists in $DR_REGION with status '$DESTINATION_STATUS'; waiting for it to become available."
+            fi
+
+            START_TIME=$(date +%s)
+            while true; do
+              DESTINATION_STATUS=$(get_snapshot_status "$DR_REGION" "$RECOVERY_SNAPSHOT_IDENTIFIER")
+
+              if [[ "$DESTINATION_STATUS" == "available" ]]; then
+                echo "Recovery snapshot $RECOVERY_SNAPSHOT_IDENTIFIER is available in $DR_REGION."
+                break
+              fi
+
+              if [[ "$DESTINATION_STATUS" == "failed" || "$DESTINATION_STATUS" == "deleted" || "$DESTINATION_STATUS" == "None" ]]; then
+                echo "Recovery snapshot copy cannot be used (status: $DESTINATION_STATUS)." >&2
+                exit 1
+              fi
+
+              if (( $(date +%s) - START_TIME >= 21000 )); then
+                echo "Timed out waiting for recovery snapshot to become available; last status: $DESTINATION_STATUS." >&2
+                exit 1
+              fi
+
+              echo "Recovery snapshot status: $DESTINATION_STATUS. Checking again in 30 seconds."
+              sleep 30
+            done
           fi
 
-          echo "Snapshot is available in $DR_REGION."
+          RECOVERY_POINT=$(aws rds describe-db-snapshots \
+            --region "$DR_REGION" \
+            --filters "Name=db-snapshot-id,Values=$RECOVERY_SNAPSHOT_IDENTIFIER" \
+            --query 'DBSnapshots[0].SnapshotCreateTime' \
+            --output text)
+          echo "Terraform will restore recovery snapshot $RECOVERY_SNAPSHOT_IDENTIFIER, created at $RECOVERY_POINT."
+          echo "snapshot_identifier=$RECOVERY_SNAPSHOT_IDENTIFIER" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Init
         run: |
@@ -108,7 +173,7 @@ jobs:
           terraform plan \
             -no-color \
             -var="region=$DR_REGION" \
-            -var="snapshot_identifier=${{ inputs.snapshot_identifier }}"
+            -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
 
       - name: Terraform Apply
         if: inputs.action_type == 'apply'
@@ -117,4 +182,4 @@ jobs:
             -auto-approve \
             -no-color \
             -var="region=$DR_REGION" \
-            -var="snapshot_identifier=${{ inputs.snapshot_identifier }}"
+            -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
