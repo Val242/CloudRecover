@@ -135,7 +135,7 @@ jobs:
                 exit 1
               fi
 
-              if (( $(date +%s) - START_TIME >= 21000 )); then
+              if (( $(date +%s) - START_TIME >= 18000 )); then
                 echo "Timed out waiting for recovery snapshot to become available; last status: $DESTINATION_STATUS." >&2
                 exit 1
               fi
