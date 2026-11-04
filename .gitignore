@@ -34,7 +34,6 @@ crash.*.log
 # Private keys
 *.pem
 *.key
-*.pub
 /infrastructure/primary/cloudrecover-bastion
 /infrastructure/primary/cloudrecoveryV2
 /infrastructure/primary/cloudrecover-private-servers
