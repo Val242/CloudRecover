@@ -38,7 +38,7 @@ env:
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
   TF_VERSION: ${{ vars.TF_VERSION }}
-  APP_PUBLIC_KEY_PATH: ${{vars.APP_PUBLIC_KEY_PATH}}
+  APP_PUBLIC_KEY_PATH: ${{ vars.APP_PUBLIC_KEY_PATH }}
   TF_WORKING_DIR: infrastructure/secondary
 
 jobs:
@@ -74,6 +74,36 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Validate Required Variables
+        env:
+          AMI_ID: ${{ vars.AMI_ID }}
+        run: |
+          set -euo pipefail
+
+          [[ -n "$DR_REGION" ]] || {
+            echo "DR_REGION is missing."
+            exit 1
+          }
+
+          [[ -n "$AMI_ID" ]] || {
+            echo "AMI_ID is missing."
+            exit 1
+          }
+
+          [[ -n "$APP_PUBLIC_KEY_PATH" ]] || {
+            echo "APP_PUBLIC_KEY_PATH is missing."
+            exit 1
+          }
+
+          [[ -f "$APP_PUBLIC_KEY_PATH" ]] || {
+            echo "SSH public key file not found: $APP_PUBLIC_KEY_PATH"
+            exit 1
+          }
+
+          echo "Required Terraform variables are available."
+          echo "Recovery region: $DR_REGION"
+          echo "Application public key file exists."
 
       - name: Reuse or Copy Recovery Snapshot
         id: recovery_snapshot
@@ -112,17 +142,20 @@ jobs:
                 --output text)
 
               echo "Copying $SOURCE_SNAPSHOT_IDENTIFIER from $PRIMARY_REGION to $DR_REGION as $RECOVERY_SNAPSHOT_IDENTIFIER."
+
               aws rds copy-db-snapshot \
                 --source-db-snapshot-identifier "$SOURCE_SNAPSHOT_ARN" \
                 --target-db-snapshot-identifier "$RECOVERY_SNAPSHOT_IDENTIFIER" \
                 --source-region "$PRIMARY_REGION" \
                 --region "$DR_REGION" \
                 --copy-tags
+
             else
               echo "Recovery snapshot exists in $DR_REGION with status '$DESTINATION_STATUS'; waiting for it to become available."
             fi
 
             START_TIME=$(date +%s)
+
             while true; do
               DESTINATION_STATUS=$(get_snapshot_status "$DR_REGION" "$RECOVERY_SNAPSHOT_IDENTIFIER")
 
@@ -151,7 +184,9 @@ jobs:
             --filters "Name=db-snapshot-id,Values=$RECOVERY_SNAPSHOT_IDENTIFIER" \
             --query 'DBSnapshots[0].SnapshotCreateTime' \
             --output text)
+
           echo "Terraform will restore recovery snapshot $RECOVERY_SNAPSHOT_IDENTIFIER, created at $RECOVERY_POINT."
+
           echo "snapshot_identifier=$RECOVERY_SNAPSHOT_IDENTIFIER" >> "$GITHUB_OUTPUT"
 
       - name: Terraform Init
@@ -170,19 +205,25 @@ jobs:
 
       - name: Terraform Plan
         if: inputs.action_type == 'plan'
+        env:
+          AMI_ID: ${{ vars.AMI_ID }}
         run: |
           terraform plan \
             -no-color \
+            -var="ami_id=$AMI_ID" \
             -var="region=$DR_REGION" \
+            -var="app_public_key_path=$APP_PUBLIC_KEY_PATH" \
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
 
       - name: Terraform Apply
         if: inputs.action_type == 'apply'
+        env:
+          AMI_ID: ${{ vars.AMI_ID }}
         run: |
           terraform apply \
             -auto-approve \
             -no-color \
-            -var="ami_id=$AMI_ID"
+            -var="ami_id=$AMI_ID" \
             -var="region=$DR_REGION" \
-            -var="app_public_key_path=$APP_PUBLIC_KEY_PATH"
+            -var="app_public_key_path=$APP_PUBLIC_KEY_PATH" \
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
