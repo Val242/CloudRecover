@@ -39,6 +39,7 @@ env:
   TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
   TF_VERSION: ${{ vars.TF_VERSION }}
   APP_PUBLIC_KEY_PATH: ${{ vars.APP_PUBLIC_KEY_PATH }}
+  AMI_ID: ${{varS.AMI_ID}}
   TF_WORKING_DIR: infrastructure/secondary
 
 jobs:
