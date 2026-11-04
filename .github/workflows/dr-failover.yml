@@ -38,6 +38,7 @@ env:
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
   TF_VERSION: ${{ vars.TF_VERSION }}
+  APP_PUBLIC_KEY_PATH: ${{vars.APP_PUBLIC_KEY_PATH}}
   TF_WORKING_DIR: infrastructure/secondary
 
 jobs:
