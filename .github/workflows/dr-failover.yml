@@ -181,5 +181,6 @@ jobs:
           terraform apply \
             -auto-approve \
             -no-color \
+            -var="ami_id=$AMI_ID"
             -var="region=$DR_REGION" \
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
