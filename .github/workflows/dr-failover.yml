@@ -183,4 +183,5 @@ jobs:
             -no-color \
             -var="ami_id=$AMI_ID"
             -var="region=$DR_REGION" \
+            -var="app_public_key_path=$APP_PUBLIC_KEY_PATH"
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
