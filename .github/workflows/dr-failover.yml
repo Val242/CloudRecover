@@ -39,7 +39,7 @@ env:
   TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
   TF_VERSION: ${{ vars.TF_VERSION }}
   APP_PUBLIC_KEY_PATH: ${{ github.workspace }}/infrastructure/secondary/cloudrecover-private-servers.pub
-  AMI_ID: ${{varS.AMI_ID}}
+  AMI_ID: ${{ vars.AMI_ID }}
   TF_WORKING_DIR: infrastructure/secondary
 
 jobs:
