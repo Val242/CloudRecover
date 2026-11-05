@@ -100,11 +100,11 @@ Note: Stock adjustment logic, movement history, and automated tests remain defer
 
 - [x] Create a controlled GitHub Actions recovery workflow.
 - [x] Select an available recovery snapshot.
-- [ ] Provision the required recovery infrastructure.
-- [ ] Restore the database from the selected snapshot.
+- [x] Provision the required recovery infrastructure.
+- [x] Restore the database from the selected snapshot.
 - [ ] Deploy the compatible application release.
 - [ ] Configure the application to use the restored database.
-- [ ] Validate application health and restored inventory data.
+- [x] Validate application health and restored inventory data.
 - [ ] Return clear recovery success or failure results.
 - [ ] Handle partial failures and safe retries.
 
