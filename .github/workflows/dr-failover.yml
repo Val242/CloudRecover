@@ -31,17 +31,6 @@ concurrency:
   group: cloudrecover-recovery
   cancel-in-progress: false
 
-env:
-  PRIMARY_REGION: ${{ vars.PRIMARY_REGION || 'eu-west-1' }}
-  DR_REGION: ${{ vars.DR_REGION }}
-  TF_STATE_REGION: ${{ vars.TF_STATE_REGION }}
-  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-  TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
-  TF_VERSION: ${{ vars.TF_VERSION }}
-  APP_PUBLIC_KEY_PATH: ${{ github.workspace }}/infrastructure/secondary/cloudrecover-private-servers.pub
-  AMI_ID: ${{ vars.AMI_ID }}
-  TF_WORKING_DIR: infrastructure/secondary
-
 jobs:
   dr-recovery:
     name: Execute DR Recovery
@@ -49,6 +38,54 @@ jobs:
     timeout-minutes: 360
 
     environment: recovery
+
+    env:
+      PRIMARY_REGION: eu-west-1
+      DR_REGION: eu-west-2
+      TF_STATE_REGION: eu-west-1
+      TF_STATE_BUCKET: tinoscriptdevops
+      TF_STATE_KEY: cloudrecover/secondary/terraform.tfstate
+      TF_VERSION: 1.16.3
+      APP_PUBLIC_KEY_PATH: ${{ github.workspace }}/infrastructure/secondary/cloudrecover-private-servers.pub
+      BASTION_PUBLIC_KEY_PATH: ${{ github.workspace }}/infrastructure/secondary/cloudrecoveryV2.pub
+      AMI_ID: ami-0bce970415466784a
+      TF_WORKING_DIR: infrastructure/secondary
+      AVAILABILITY_ZONE_1: eu-west-2a
+      AVAILABILITY_ZONE_2: eu-west-2b
+      VPC_NAME: cloud-recover-primary-vpc
+      VPC_CIDR: 172.20.0.0/16
+      PUBLIC_SUBNET_1_CIDR: 172.20.10.0/24
+      PUBLIC_SUBNET_2_CIDR: 172.20.11.0/24
+      APP_SUBNET_1_CIDR: 172.20.20.0/24
+      APP_SUBNET_2_CIDR: 172.20.21.0/24
+      MONITORING_SUBNET_1_CIDR: 172.20.30.0/24
+      MONITORING_SUBNET_2_CIDR: 172.20.31.0/24
+      DATABASE_SUBNET_1_CIDR: 172.20.40.0/24
+      DATABASE_SUBNET_2_CIDR: 172.20.41.0/24
+      PUBLIC_ROUTE_CIDR: 0.0.0.0/0
+      PRIVATE_ROUTE_1_CIDR: 0.0.0.0/0
+      PRIVATE_ROUTE_2_CIDR: 0.0.0.0/0
+      PUBLIC_SUBNET_1_NAME: cloud-recover-pub-1
+      PUBLIC_SUBNET_2_NAME: cloud-recover-pub-2
+      APP_SUBNET_1_NAME: cloud-recover-app-1
+      APP_SUBNET_2_NAME: cloud-recover-app-2
+      MONITORING_SUBNET_1_NAME: cloud-recover-monitoring-1
+      MONITORING_SUBNET_2_NAME: cloud-recover-monitoring-2
+      DATABASE_SUBNET_1_NAME: cloud-recover-priv-1
+      DATABASE_SUBNET_2_NAME: cloud-recover-priv-2
+      INTERNET_GATEWAY_NAME: cloud-recover-IGW
+      NAT_GATEWAY_1_EIP_NAME: nat-gateway-1-eip
+      NAT_GATEWAY_2_EIP_NAME: nat-gateway-2-eip
+      NAT_GATEWAY_1_NAME: cloud-recover-NGW-1
+      NAT_GATEWAY_2_NAME: cloud-recover-NGW-2
+      PUBLIC_ROUTE_TABLE_NAME: cloud-recover-pub-RT
+      PRIVATE_ROUTE_TABLE_1_NAME: cloud-recover-priv-RT-1
+      PRIVATE_ROUTE_TABLE_2_NAME: cloud-recover-priv-RT-2
+      DATABASE_ROUTE_TABLE_NAME: cloud-recover-db-RT
+      MY_IP: 143.105.152.193/32
+      KEY_NAME: cloudrecover-primary-bastion-key
+      TF_VAR_db_username: ${{ secrets.DB_USERNAME }}
+      TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
     defaults:
       run:
@@ -77,8 +114,6 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
 
       - name: Validate Required Variables
-        env:
-          AMI_ID: ${{ vars.AMI_ID }}
         run: |
           set -euo pipefail
 
@@ -101,6 +136,38 @@ jobs:
             echo "SSH public key file not found: $APP_PUBLIC_KEY_PATH"
             exit 1
           }
+
+          [[ -f "$BASTION_PUBLIC_KEY_PATH" ]] || {
+            echo "Bastion SSH public key file not found: $BASTION_PUBLIC_KEY_PATH"
+            exit 1
+          }
+
+          required_vars=(
+            AVAILABILITY_ZONE_1 AVAILABILITY_ZONE_2 VPC_NAME VPC_CIDR
+            PUBLIC_SUBNET_1_CIDR PUBLIC_SUBNET_2_CIDR
+            APP_SUBNET_1_CIDR APP_SUBNET_2_CIDR
+            MONITORING_SUBNET_1_CIDR MONITORING_SUBNET_2_CIDR
+            DATABASE_SUBNET_1_CIDR DATABASE_SUBNET_2_CIDR
+            PUBLIC_ROUTE_CIDR PRIVATE_ROUTE_1_CIDR PRIVATE_ROUTE_2_CIDR
+            PUBLIC_SUBNET_1_NAME PUBLIC_SUBNET_2_NAME
+            APP_SUBNET_1_NAME APP_SUBNET_2_NAME
+            MONITORING_SUBNET_1_NAME MONITORING_SUBNET_2_NAME
+            DATABASE_SUBNET_1_NAME DATABASE_SUBNET_2_NAME
+            INTERNET_GATEWAY_NAME NAT_GATEWAY_1_EIP_NAME NAT_GATEWAY_2_EIP_NAME
+            NAT_GATEWAY_1_NAME NAT_GATEWAY_2_NAME
+            PUBLIC_ROUTE_TABLE_NAME PRIVATE_ROUTE_TABLE_1_NAME
+            PRIVATE_ROUTE_TABLE_2_NAME DATABASE_ROUTE_TABLE_NAME MY_IP KEY_NAME
+          )
+
+          for name in "${required_vars[@]}"; do
+            [[ -n "${!name}" ]] || {
+              echo "$name is missing from GitHub Actions variables."
+              exit 1
+            }
+          done
+
+          [[ -n "$TF_VAR_db_username" ]] || { echo "DB_USERNAME is missing from GitHub Actions secrets."; exit 1; }
+          [[ -n "$TF_VAR_db_password" ]] || { echo "DB_PASSWORD is missing from GitHub Actions secrets."; exit 1; }
 
           echo "Required Terraform variables are available."
           echo "Recovery region: $DR_REGION"
@@ -206,25 +273,93 @@ jobs:
 
       - name: Terraform Plan
         if: inputs.action_type == 'plan'
-        env:
-          AMI_ID: ${{ vars.AMI_ID }}
         run: |
           terraform plan \
+            -input=false \
             -no-color \
             -var="ami_id=$AMI_ID" \
             -var="region=$DR_REGION" \
+            -var="availability_zone_1=$AVAILABILITY_ZONE_1" \
+            -var="availability_zone_2=$AVAILABILITY_ZONE_2" \
+            -var="vpc_name=$VPC_NAME" \
+            -var="vpc_cidr=$VPC_CIDR" \
+            -var="public_subnet_1_cidr=$PUBLIC_SUBNET_1_CIDR" \
+            -var="public_subnet_2_cidr=$PUBLIC_SUBNET_2_CIDR" \
+            -var="app_subnet_1_cidr=$APP_SUBNET_1_CIDR" \
+            -var="app_subnet_2_cidr=$APP_SUBNET_2_CIDR" \
+            -var="monitoring_subnet_1_cidr=$MONITORING_SUBNET_1_CIDR" \
+            -var="monitoring_subnet_2_cidr=$MONITORING_SUBNET_2_CIDR" \
+            -var="database_subnet_1_cidr=$DATABASE_SUBNET_1_CIDR" \
+            -var="database_subnet_2_cidr=$DATABASE_SUBNET_2_CIDR" \
+            -var="public_route_cidr=$PUBLIC_ROUTE_CIDR" \
+            -var="private_route_1_cidr=$PRIVATE_ROUTE_1_CIDR" \
+            -var="private_route_2_cidr=$PRIVATE_ROUTE_2_CIDR" \
+            -var="public_subnet_1_name=$PUBLIC_SUBNET_1_NAME" \
+            -var="public_subnet_2_name=$PUBLIC_SUBNET_2_NAME" \
+            -var="app_subnet_1_name=$APP_SUBNET_1_NAME" \
+            -var="app_subnet_2_name=$APP_SUBNET_2_NAME" \
+            -var="monitoring_subnet_1_name=$MONITORING_SUBNET_1_NAME" \
+            -var="monitoring_subnet_2_name=$MONITORING_SUBNET_2_NAME" \
+            -var="database_subnet_1_name=$DATABASE_SUBNET_1_NAME" \
+            -var="database_subnet_2_name=$DATABASE_SUBNET_2_NAME" \
+            -var="internet_gateway_name=$INTERNET_GATEWAY_NAME" \
+            -var="nat_gateway_1_eip_name=$NAT_GATEWAY_1_EIP_NAME" \
+            -var="nat_gateway_2_eip_name=$NAT_GATEWAY_2_EIP_NAME" \
+            -var="nat_gateway_1_name=$NAT_GATEWAY_1_NAME" \
+            -var="nat_gateway_2_name=$NAT_GATEWAY_2_NAME" \
+            -var="public_route_table_name=$PUBLIC_ROUTE_TABLE_NAME" \
+            -var="private_route_table_1_name=$PRIVATE_ROUTE_TABLE_1_NAME" \
+            -var="private_route_table_2_name=$PRIVATE_ROUTE_TABLE_2_NAME" \
+            -var="database_route_table_name=$DATABASE_ROUTE_TABLE_NAME" \
+            -var="my_ip=$MY_IP" \
+            -var="key_name=$KEY_NAME" \
+            -var="public_key_path=$BASTION_PUBLIC_KEY_PATH" \
             -var="app_public_key_path=$APP_PUBLIC_KEY_PATH" \
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
 
       - name: Terraform Apply
         if: inputs.action_type == 'apply'
-        env:
-          AMI_ID: ${{ vars.AMI_ID }}
         run: |
           terraform apply \
+            -input=false \
             -auto-approve \
             -no-color \
             -var="ami_id=$AMI_ID" \
             -var="region=$DR_REGION" \
+            -var="availability_zone_1=$AVAILABILITY_ZONE_1" \
+            -var="availability_zone_2=$AVAILABILITY_ZONE_2" \
+            -var="vpc_name=$VPC_NAME" \
+            -var="vpc_cidr=$VPC_CIDR" \
+            -var="public_subnet_1_cidr=$PUBLIC_SUBNET_1_CIDR" \
+            -var="public_subnet_2_cidr=$PUBLIC_SUBNET_2_CIDR" \
+            -var="app_subnet_1_cidr=$APP_SUBNET_1_CIDR" \
+            -var="app_subnet_2_cidr=$APP_SUBNET_2_CIDR" \
+            -var="monitoring_subnet_1_cidr=$MONITORING_SUBNET_1_CIDR" \
+            -var="monitoring_subnet_2_cidr=$MONITORING_SUBNET_2_CIDR" \
+            -var="database_subnet_1_cidr=$DATABASE_SUBNET_1_CIDR" \
+            -var="database_subnet_2_cidr=$DATABASE_SUBNET_2_CIDR" \
+            -var="public_route_cidr=$PUBLIC_ROUTE_CIDR" \
+            -var="private_route_1_cidr=$PRIVATE_ROUTE_1_CIDR" \
+            -var="private_route_2_cidr=$PRIVATE_ROUTE_2_CIDR" \
+            -var="public_subnet_1_name=$PUBLIC_SUBNET_1_NAME" \
+            -var="public_subnet_2_name=$PUBLIC_SUBNET_2_NAME" \
+            -var="app_subnet_1_name=$APP_SUBNET_1_NAME" \
+            -var="app_subnet_2_name=$APP_SUBNET_2_NAME" \
+            -var="monitoring_subnet_1_name=$MONITORING_SUBNET_1_NAME" \
+            -var="monitoring_subnet_2_name=$MONITORING_SUBNET_2_NAME" \
+            -var="database_subnet_1_name=$DATABASE_SUBNET_1_NAME" \
+            -var="database_subnet_2_name=$DATABASE_SUBNET_2_NAME" \
+            -var="internet_gateway_name=$INTERNET_GATEWAY_NAME" \
+            -var="nat_gateway_1_eip_name=$NAT_GATEWAY_1_EIP_NAME" \
+            -var="nat_gateway_2_eip_name=$NAT_GATEWAY_2_EIP_NAME" \
+            -var="nat_gateway_1_name=$NAT_GATEWAY_1_NAME" \
+            -var="nat_gateway_2_name=$NAT_GATEWAY_2_NAME" \
+            -var="public_route_table_name=$PUBLIC_ROUTE_TABLE_NAME" \
+            -var="private_route_table_1_name=$PRIVATE_ROUTE_TABLE_1_NAME" \
+            -var="private_route_table_2_name=$PRIVATE_ROUTE_TABLE_2_NAME" \
+            -var="database_route_table_name=$DATABASE_ROUTE_TABLE_NAME" \
+            -var="my_ip=$MY_IP" \
+            -var="key_name=$KEY_NAME" \
+            -var="public_key_path=$BASTION_PUBLIC_KEY_PATH" \
             -var="app_public_key_path=$APP_PUBLIC_KEY_PATH" \
             -var="snapshot_identifier=${{ steps.recovery_snapshot.outputs.snapshot_identifier }}"
