@@ -285,3 +285,20 @@ variable "snapshot_identifier" {
   type        = string
   default     = null
 }
+
+variable "route53_hosted_zone_id" {
+  description = "Hosted zone ID output by the primary Terraform stack"
+  type        = string
+}
+
+variable "route53_domain_name" {
+  description = "Private DNS zone created by the primary Terraform stack"
+  type        = string
+  default     = "cloudrecover.internal"
+}
+
+variable "route53_record_name" {
+  description = "Private application DNS name managed by the Route 53 failover records"
+  type        = string
+  default     = "api.cloudrecover.internal"
+}

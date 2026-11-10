@@ -28,6 +28,21 @@ output "load_balancer_dns_name" {
   value       = module.load_balancer.alb_dns_name
 }
 
+output "application_dns_name" {
+  description = "Application DNS name configured for Route 53 failover"
+  value       = module.route53.record_fqdn
+}
+
+output "route53_hosted_zone_id" {
+  description = "ID of the Route 53 hosted zone created by the primary stack"
+  value       = module.route53.hosted_zone_id
+}
+
+output "route53_hosted_zone_name" {
+  description = "Name of the private Route 53 hosted zone"
+  value       = module.route53.hosted_zone_name
+}
+
 output "web_security_group_id" {
   description = "Security group ID for application instances"
   value       = module.security_groups.web_security_group_id

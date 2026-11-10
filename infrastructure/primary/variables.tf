@@ -324,3 +324,15 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "route53_domain_name" {
+  description = "Private DNS zone for the application"
+  type        = string
+  default     = "cloudrecover.internal"
+}
+
+variable "route53_record_name" {
+  description = "Private application DNS name managed by the Route 53 failover records"
+  type        = string
+  default     = "api.cloudrecover.internal"
+}
