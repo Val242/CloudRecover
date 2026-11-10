@@ -79,7 +79,7 @@ variable "grafana_target_port" {
 variable "app_health_check_path" {
   description = "HTTP path used to check application health"
   type        = string
-  default     = "/"
+  default     = "/health/ready"
 }
 
 variable "prometheus_health_check_path" {
