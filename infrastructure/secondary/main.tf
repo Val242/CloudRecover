@@ -112,6 +112,11 @@ module "load_balancer" {
 module "route53" {
   source = "../modules/route53"
 
+  providers = {
+    aws          = aws
+    aws.virginia = aws.virginia
+  }
+
   domain_name           = var.route53_domain_name
   create_hosted_zone    = false
   hosted_zone_id        = var.route53_hosted_zone_id

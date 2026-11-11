@@ -27,3 +27,13 @@ output "failover_type" {
   description = "Failover role configured for this record"
   value       = aws_route53_record.application.failover_routing_policy[0].type
 }
+
+output "primary_health_check_id" {
+  description = "ID of the primary ALB Route 53 health check, when created"
+  value       = try(aws_route53_health_check.primary[0].id, null)
+}
+
+output "recovery_health_check_id" {
+  description = "ID of the recovery ALB Route 53 health check, when created"
+  value       = try(aws_route53_health_check.recovery[0].id, null)
+}

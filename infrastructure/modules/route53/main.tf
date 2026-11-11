@@ -35,10 +35,10 @@ locals {
 }
 
 resource "aws_route53_record" "application" {
-  zone_id        = local.hosted_zone_id
-  name           = var.record_name
-  type           = "A"
-  set_identifier = "${var.project}-${lower(var.failover_type)}"
+  zone_id         = local.hosted_zone_id
+  name            = var.record_name
+  type            = "A"
+  set_identifier  = "${var.project}-${lower(var.failover_type)}"
   health_check_id = var.failover_type == "PRIMARY" ? aws_route53_health_check.primary[0].id : aws_route53_health_check.recovery[0].id
 
   alias {
@@ -81,6 +81,15 @@ resource "aws_route53_health_check" "recovery" {
 
   tags = {
     Name    = "cloudrecover-recovery-health-check"
+    Project = "CloudRecover"
+  }
+}
+
+resource "aws_sns_topic" "primary_health_alerts" {
+  name = "cloudrecover-primary-health-alerts"
+
+  tags = {
+    Name    = "cloudrecover-primary-health-alerts"
     Project = "CloudRecover"
   }
 }
