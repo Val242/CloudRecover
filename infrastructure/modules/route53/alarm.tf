@@ -10,8 +10,8 @@ resource "aws_cloudwatch_metric_alarm" "primary_health" {
   metric_name = "HealthCheckStatus"
   statistic   = "Minimum"
   alarm_actions = [
-  aws_sns_topic.primary_health_alerts.arn
-]
+    aws_sns_topic.route53_health_alerts[0].arn
+  ]
 
   period              = 60
   evaluation_periods  = 2

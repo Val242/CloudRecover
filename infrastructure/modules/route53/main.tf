@@ -94,3 +94,16 @@ resource "aws_sns_topic" "primary_health_alerts" {
   }
 }
 
+resource "aws_sns_topic" "route53_health_alerts" {
+  count = var.primary_alb_dns_name == null ? 0 : 1
+
+  provider = aws.virginia
+
+  name = "cloudrecover-route53-health-alerts"
+
+  tags = {
+    Name    = "cloudrecover-route53-health-alerts"
+    Project = "CloudRecover"
+  }
+}
+
