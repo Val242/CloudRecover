@@ -5,7 +5,7 @@ variable "ami_id" {
 
 variable "instance_type" {
   description = "Instance type"
-  type = string
+  type        = string
 }
 
 variable "prometheus_security_group_id" {
@@ -15,13 +15,13 @@ variable "prometheus_security_group_id" {
 
 variable "subnet_id" {
   description = "Subnet ID"
-  type = string
+  type        = string
 }
 
 variable "instance_name" {
-   description = "Prometheus Server's name"
-   type = string
-   default = "prometheus-server"
+  description = "Prometheus Server's name"
+  type        = string
+  default     = "prometheus-server"
 }
 
 variable "key_name" {

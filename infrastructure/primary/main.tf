@@ -80,7 +80,7 @@ module "load_balancer" {
   source = "../modules/load-balancer"
 
   enable_monitoring = true
-  alb_name = "${var.project}-${var.environment}-alb"
+  alb_name          = "${var.project}-${var.environment}-alb"
   # Keep the existing application target group name to avoid replacing it.
   app_target_group_name        = "${var.project}-${var.environment}-tg"
   prometheus_target_group_name = "${var.project}-${var.environment}-prom-tg"
@@ -100,15 +100,16 @@ module "load_balancer" {
 module "route53" {
   source = "../modules/route53"
 
-  domain_name       = var.route53_domain_name
-  create_hosted_zone = true
-  record_name       = var.route53_record_name
-  vpc_id            = module.vpc.vpc_id
-  vpc_region        = var.region
-  alb_dns_name      = module.load_balancer.alb_dns_name
-  alb_zone_id       = module.load_balancer.alb_zone_id
-  failover_type     = "PRIMARY"
-  project           = var.project
+  domain_name          = var.route53_domain_name
+  create_hosted_zone   = true
+  record_name          = var.route53_record_name
+  vpc_id               = module.vpc.vpc_id
+  vpc_region           = var.region
+  alb_dns_name         = module.load_balancer.alb_dns_name
+  alb_zone_id          = module.load_balancer.alb_zone_id
+  primary_alb_dns_name = module.load_balancer.alb_dns_name
+  failover_type        = "PRIMARY"
+  project              = var.project
 }
 
 module "bastion" {

@@ -48,6 +48,20 @@ variable "alb_zone_id" {
   type        = string
 }
 
+variable "primary_alb_dns_name" {
+  description = "DNS name of the primary environment's application load balancer"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "recovery_alb_dns_name" {
+  description = "DNS name of the recovery environment's application load balancer"
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "failover_type" {
   description = "Route 53 failover role for this environment's record"
   type        = string

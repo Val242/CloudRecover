@@ -14,12 +14,12 @@ resource "aws_security_group" "web" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_ssh_from_bastion_host" {
-  security_group_id = aws_security_group.web.id
+  security_group_id            = aws_security_group.web.id
   referenced_security_group_id = aws_security_group.bastion.id
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-  description       = "SSH access from the Bastion IP"
+  from_port                    = 22
+  ip_protocol                  = "tcp"
+  to_port                      = 22
+  description                  = "SSH access from the Bastion IP"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_node_exporter_from_prometheus" {
@@ -28,7 +28,7 @@ resource "aws_vpc_security_group_ingress_rule" "web_node_exporter_from_prometheu
   from_port                    = 9100
   ip_protocol                  = "tcp"
   to_port                      = 9100
-  description                 = "Node Exporter metrics from Prometheus"
+  description                  = "Node Exporter metrics from Prometheus"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_app_from_prometheus" {
@@ -37,7 +37,7 @@ resource "aws_vpc_security_group_ingress_rule" "web_app_from_prometheus" {
   from_port                    = 3000
   ip_protocol                  = "tcp"
   to_port                      = 3000
-  description                 = "Application metrics scraping from Prometheus"
+  description                  = "Application metrics scraping from Prometheus"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_app_from_alb" {
@@ -46,7 +46,7 @@ resource "aws_vpc_security_group_ingress_rule" "web_app_from_alb" {
   from_port                    = 3000
   ip_protocol                  = "tcp"
   to_port                      = 3000
-  description                 = "Application traffic from the ALB"
+  description                  = "Application traffic from the ALB"
 }
 
 resource "aws_vpc_security_group_egress_rule" "web_outbound_ipv4" {
@@ -146,10 +146,10 @@ resource "aws_security_group" "bastion" {
 resource "aws_vpc_security_group_ingress_rule" "bastion_ssh" {
   security_group_id = aws_security_group.bastion.id
   description       = "SSH access from administrator IP"
-  cidr_ipv4   = var.my_ip
-  from_port   = 22
-  to_port     = 22
-  ip_protocol = "tcp"
+  cidr_ipv4         = var.my_ip
+  from_port         = 22
+  to_port           = 22
+  ip_protocol       = "tcp"
 }
 
 resource "aws_vpc_security_group_egress_rule" "bastion_all_outbound" {
@@ -175,12 +175,12 @@ resource "aws_security_group" "prometheus" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "prometheus_ssh_from_bastion_host" {
-  security_group_id = aws_security_group.prometheus.id
+  security_group_id            = aws_security_group.prometheus.id
   referenced_security_group_id = aws_security_group.bastion.id
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-  description       = "SSH access from the Bastion Host"
+  from_port                    = 22
+  ip_protocol                  = "tcp"
+  to_port                      = 22
+  description                  = "SSH access from the Bastion Host"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "prometheus_ui_from_my_ip" {
@@ -240,12 +240,12 @@ resource "aws_security_group" "grafana" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "grafana_ssh_from_bastion_host" {
-  security_group_id = aws_security_group.grafana.id
+  security_group_id            = aws_security_group.grafana.id
   referenced_security_group_id = aws_security_group.bastion.id
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-  description       = "SSH access from the Bastion"
+  from_port                    = 22
+  ip_protocol                  = "tcp"
+  to_port                      = 22
+  description                  = "SSH access from the Bastion"
 }
 
 resource "aws_vpc_security_group_ingress_rule" "grafana_ui_from_my_ip" {

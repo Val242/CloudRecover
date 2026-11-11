@@ -5,18 +5,18 @@ variable "ami_id" {
 
 variable "instance_type" {
   description = "Instance type"
-  type = string
+  type        = string
 }
 
 variable "subnet_id" {
   description = "Subnet ID"
-  type = string
+  type        = string
 }
 
 variable "instance_name" {
-   description = "Application Server's name"
-   type = string
-   default = "cloud-recover-api"
+  description = "Application Server's name"
+  type        = string
+  default     = "cloud-recover-api"
 }
 
 variable "app_server_security_group_id" {

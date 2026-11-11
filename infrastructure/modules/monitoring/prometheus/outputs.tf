@@ -5,7 +5,7 @@ output "prometheus_server_instance_id" {
 
 output "prometheus_server_state" {
   description = "State of the web server"
-  value = aws_ec2_instance_state.prometheus-server-state.state
+  value       = aws_ec2_instance_state.prometheus-server-state.state
 }
 
 output "prometheus_server_key_pair_name" {

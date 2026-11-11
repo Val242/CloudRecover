@@ -12,13 +12,13 @@ variable "app_target_group_name" {
 variable "prometheus_target_group_name" {
   description = "Name of the Prometheus target group"
   type        = string
-  default = null
+  default     = null
 }
 
 variable "grafana_target_group_name" {
   description = "Name of the Grafana target group"
   type        = string
-  default = null
+  default     = null
 }
 
 variable "public_subnet_ids" {
@@ -49,13 +49,13 @@ variable "app_instance_ids" {
 variable "prometheus_instance_ids" {
   description = "Prometheus EC2 instance IDs to register with the Prometheus target group"
   type        = list(string)
-  default = []
+  default     = []
 }
 
 variable "grafana_instance_ids" {
   description = "Grafana EC2 instance IDs to register with the Grafana target group"
   type        = list(string)
-  default = []
+  default     = []
 }
 
 variable "app_target_port" {

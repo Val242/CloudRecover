@@ -45,7 +45,7 @@ resource "aws_lb_target_group" "app_tg" {
 # prometheus target group
 
 resource "aws_lb_target_group" "prometheus_tg" {
-  count = var.enable_monitoring ? 1 : 0
+  count       = var.enable_monitoring ? 1 : 0
   name        = var.prometheus_target_group_name
   port        = var.prometheus_target_port
   protocol    = "HTTP"
@@ -63,7 +63,7 @@ resource "aws_lb_target_group" "prometheus_tg" {
     unhealthy_threshold = 3
     matcher             = "200"
   }
-  
+
 
   tags = {
     Name        = var.prometheus_target_group_name
@@ -74,7 +74,7 @@ resource "aws_lb_target_group" "prometheus_tg" {
 
 # grafana target group
 resource "aws_lb_target_group" "grafana_tg" {
-  count = var.enable_monitoring ? 1 : 0
+  count       = var.enable_monitoring ? 1 : 0
   name        = var.grafana_target_group_name
   port        = var.grafana_target_port
   protocol    = "HTTP"
@@ -112,7 +112,7 @@ resource "aws_lb_listener" "http" {
 }
 
 resource "aws_lb_listener" "prometheus" {
-    count = var.enable_monitoring ? 1 : 0
+  count             = var.enable_monitoring ? 1 : 0
   load_balancer_arn = aws_lb.app_alb.arn
   port              = var.prometheus_target_port
   protocol          = "HTTP"
@@ -124,7 +124,7 @@ resource "aws_lb_listener" "prometheus" {
 }
 
 resource "aws_lb_listener" "grafana" {
-    count = var.enable_monitoring ? 1 : 0
+  count             = var.enable_monitoring ? 1 : 0
   load_balancer_arn = aws_lb.app_alb.arn
   port              = var.grafana_target_port
   protocol          = "HTTP"
@@ -148,7 +148,7 @@ resource "aws_lb_target_group_attachment" "app" {
 }
 
 resource "aws_lb_target_group_attachment" "prometheus" {
- for_each = var.enable_monitoring ? {
+  for_each = var.enable_monitoring ? {
     for index, id in var.prometheus_instance_ids : index => id
   } : {}
 
@@ -159,7 +159,7 @@ resource "aws_lb_target_group_attachment" "prometheus" {
 }
 
 resource "aws_lb_target_group_attachment" "grafana" {
-   for_each = var.enable_monitoring ? {
+  for_each = var.enable_monitoring ? {
     for index, id in var.grafana_instance_ids : index => id
   } : {}
 

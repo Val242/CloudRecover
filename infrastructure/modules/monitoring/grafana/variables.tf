@@ -5,18 +5,18 @@ variable "ami_id" {
 
 variable "instance_type" {
   description = "Instance type"
-  type = string
+  type        = string
 }
 
 variable "subnet_id" {
   description = "Subnet ID"
-  type = string
+  type        = string
 }
 
 variable "instance_name" {
-   description = "Grafana Server's name"
-   type = string
-   default = "grafana-server"
+  description = "Grafana Server's name"
+  type        = string
+  default     = "grafana-server"
 }
 
 variable "key_name" {

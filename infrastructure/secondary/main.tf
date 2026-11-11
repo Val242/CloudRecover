@@ -112,16 +112,17 @@ module "load_balancer" {
 module "route53" {
   source = "../modules/route53"
 
-  domain_name        = var.route53_domain_name
-  create_hosted_zone = false
-  hosted_zone_id     = var.route53_hosted_zone_id
-  record_name        = var.route53_record_name
-  vpc_id             = module.vpc.vpc_id
-  vpc_region         = var.region
-  alb_dns_name       = module.load_balancer.alb_dns_name
-  alb_zone_id        = module.load_balancer.alb_zone_id
-  failover_type      = "SECONDARY"
-  project            = var.project
+  domain_name           = var.route53_domain_name
+  create_hosted_zone    = false
+  hosted_zone_id        = var.route53_hosted_zone_id
+  record_name           = var.route53_record_name
+  vpc_id                = module.vpc.vpc_id
+  vpc_region            = var.region
+  alb_dns_name          = module.load_balancer.alb_dns_name
+  alb_zone_id           = module.load_balancer.alb_zone_id
+  recovery_alb_dns_name = module.load_balancer.alb_dns_name
+  failover_type         = "SECONDARY"
+  project               = var.project
 }
 
 

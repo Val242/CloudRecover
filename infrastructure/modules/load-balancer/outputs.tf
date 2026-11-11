@@ -40,5 +40,5 @@ output "prometheus_listener_arn" {
 
 output "grafana_listener_arn" {
   description = "ARN of the Grafana listener"
- value       = try(aws_lb_listener.grafana[0].arn, null)
+  value       = try(aws_lb_listener.grafana[0].arn, null)
 }

@@ -10,7 +10,7 @@ variable "grafana_security_group_id" {
 
 output "grafana_server_state" {
   description = "State of the grafana server"
-  value = aws_ec2_instance_state.grafana-server-state.state
+  value       = aws_ec2_instance_state.grafana-server-state.state
 }
 
 output "grafana_server_key_pair_name" {
