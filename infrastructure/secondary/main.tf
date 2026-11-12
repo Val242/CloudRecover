@@ -161,3 +161,25 @@ module "database" {
   rds_security_group_id = module.security_groups.rds_security_group_id
   snapshot_identifier   = var.snapshot_identifier
 }
+
+module "lambda_iam" {
+  source = "../modules/iam"
+
+  github_secret_arn = var.github_secret_arn
+}
+
+module "lambda_trigger" {
+  source = "../modules/lambda"
+
+  lambda_execution_role_arn = module.lambda_iam.lambda_execution_role_arn
+
+  sns_topic_arn = var.primary_sns_topic_arn
+
+  lambda_deployment_package = var.lambda_deployment_package
+
+  github_owner      = var.github_owner
+  github_repository = var.github_repository
+  github_workflow   = var.github_workflow
+  github_ref        = var.github_ref
+  github_secret_arn = var.github_secret_arn
+}

@@ -302,3 +302,60 @@ variable "route53_record_name" {
   type        = string
   default     = "api.cloudrecover.internal"
 }
+
+# variable "github_secret_arn" {
+#   description = "ARN of the GitHub token secret in AWS Secrets Manager"
+#   type        = string
+# }
+
+# ------------------------------------------------------------
+# IAM
+# ------------------------------------------------------------
+
+variable "github_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the GitHub PAT"
+  type        = string
+}
+
+# ------------------------------------------------------------
+# Lambda deployment
+# ------------------------------------------------------------
+
+variable "lambda_deployment_package" {
+  description = "Path to the compiled Lambda deployment ZIP"
+  type        = string
+}
+
+# ------------------------------------------------------------
+# GitHub Actions workflow dispatch
+# ------------------------------------------------------------
+
+variable "github_owner" {
+  description = "GitHub repository owner"
+  type        = string
+}
+
+variable "github_repository" {
+  description = "GitHub repository name"
+  type        = string
+}
+
+variable "github_workflow" {
+  description = "GitHub Actions workflow filename"
+  type        = string
+}
+
+variable "github_ref" {
+  description = "Git branch to dispatch the workflow against"
+  type        = string
+  default     = "main"
+}
+
+# ------------------------------------------------------------
+# Primary SNS topic
+# ------------------------------------------------------------
+
+variable "primary_sns_topic_arn" {
+  description = "ARN of the primary Route 53 health alarm SNS topic"
+  type        = string
+}
