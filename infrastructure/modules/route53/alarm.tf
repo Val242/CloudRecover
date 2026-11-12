@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_metric_alarm" "primary_health" {
-  count = var.primary_alb_dns_name == null ? 0 : 1
+  count = var.failover_type == "PRIMARY" ? 1 : 0
 
   provider = aws.virginia
 
@@ -33,7 +33,7 @@ resource "aws_cloudwatch_metric_alarm" "primary_health" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "recovery_health" {
-  count = var.recovery_alb_dns_name == null ? 0 : 1
+  count = var.failover_type == "SECONDARY" ? 1 : 0
 
   provider = aws.virginia
 

@@ -53,7 +53,7 @@ resource "aws_route53_record" "application" {
 }
 
 resource "aws_route53_health_check" "primary" {
-  count = var.primary_alb_dns_name == null ? 0 : 1
+  count = var.failover_type == "PRIMARY" ? 1 : 0
 
   fqdn              = var.primary_alb_dns_name
   port              = 80
@@ -70,7 +70,7 @@ resource "aws_route53_health_check" "primary" {
 
 
 resource "aws_route53_health_check" "recovery" {
-  count = var.recovery_alb_dns_name == null ? 0 : 1
+  count = var.failover_type == "SECONDARY" ? 1 : 0
 
   fqdn              = var.recovery_alb_dns_name
   port              = 80
@@ -95,7 +95,7 @@ resource "aws_sns_topic" "primary_health_alerts" {
 }
 
 resource "aws_sns_topic" "route53_health_alerts" {
-  count = var.primary_alb_dns_name == null ? 0 : 1
+  count = var.failover_type == "PRIMARY" ? 1 : 0
 
   provider = aws.virginia
 
@@ -106,4 +106,3 @@ resource "aws_sns_topic" "route53_health_alerts" {
     Project = "CloudRecover"
   }
 }
-
