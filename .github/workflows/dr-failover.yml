@@ -4,24 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       snapshot_identifier:
-        description: 'Source RDS snapshot identifier in the primary region (used if no recovery copy exists)'
-        required: true
+        description: 'Optional source RDS snapshot identifier. If omitted, the workflow selects the latest available snapshot for the primary DB instance.'
+        required: false
         type: string
 
       action_type:
-        description: 'Terraform operation'
-        required: true
+        description: 'Terraform operation. Alarm-triggered recovery defaults to apply; choose plan for a manual validation run.'
+        required: false
         type: choice
         options:
           - plan
           - apply
-        default: plan
-
-      confirm_recovery:
-        description: 'Confirm that this is an authorized recovery operation'
-        required: true
-        type: boolean
-        default: true
+        default: apply
 
       trigger_source:
         description: 'What triggered disaster recovery'
@@ -60,8 +54,11 @@ jobs:
     environment: recovery
 
     env:
-      PRIMARY_REGION: eu-west-1
-      DR_REGION: eu-west-2
+      PRIMARY_REGION: ${{ inputs.source_region }}
+      DR_REGION: ${{ inputs.recovery_region }}
+      SOURCE_DB_INSTANCE_IDENTIFIER: mydb
+      TRIGGER_SOURCE: ${{ inputs.trigger_source }}
+      ALARM_NAME: ${{ inputs.alarm_name }}
       TF_STATE_REGION: eu-west-1
       TF_STATE_BUCKET: tinoscriptdevops
       TF_STATE_KEY: cloudrecover/secondary/terraform.tfstate
@@ -115,12 +112,25 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Validate Recovery Confirmation
+      - name: Validate Recovery Trigger
         run: |
-          if [[ "${{ inputs.confirm_recovery }}" != "true" ]]; then
-            echo "Recovery confirmation is required."
+          set -euo pipefail
+
+          [[ -n "$PRIMARY_REGION" ]] || { echo "Source region is missing."; exit 1; }
+          [[ -n "$DR_REGION" ]] || { echo "Recovery region is missing."; exit 1; }
+          [[ -n "$TRIGGER_SOURCE" ]] || { echo "Trigger source is missing."; exit 1; }
+          [[ -n "$ALARM_NAME" ]] || { echo "Alarm name is missing."; exit 1; }
+
+          if [[ "$ALARM_NAME" != "cloudrecover-primary-health-alarm" ]]; then
+            echo "Unexpected alarm: $ALARM_NAME"
             exit 1
           fi
+
+          echo "Recovery trigger: $TRIGGER_SOURCE"
+          echo "Alarm: $ALARM_NAME"
+          echo "Source region: $PRIMARY_REGION"
+          echo "Recovery region: $DR_REGION"
+          echo "Terraform operation: ${{ inputs.action_type }}"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -216,6 +226,23 @@ jobs:
             echo "Reusing available snapshot $RECOVERY_SNAPSHOT_IDENTIFIER in $DR_REGION."
           else
             if [[ "$DESTINATION_STATUS" == "None" || -z "$DESTINATION_STATUS" ]]; then
+              if [[ -z "$SOURCE_SNAPSHOT_IDENTIFIER" ]]; then
+                echo "No source snapshot was supplied. Finding the latest available snapshot for DB instance $SOURCE_DB_INSTANCE_IDENTIFIER."
+
+                SOURCE_SNAPSHOT_IDENTIFIER=$(aws rds describe-db-snapshots \
+                  --region "$PRIMARY_REGION" \
+                  --filters "Name=db-instance-id,Values=$SOURCE_DB_INSTANCE_IDENTIFIER" "Name=status,Values=available" \
+                  --query 'sort_by(DBSnapshots, &SnapshotCreateTime)[-1].DBSnapshotIdentifier' \
+                  --output text)
+
+                if [[ "$SOURCE_SNAPSHOT_IDENTIFIER" == "None" || -z "$SOURCE_SNAPSHOT_IDENTIFIER" ]]; then
+                  echo "No available source snapshot was found for DB instance $SOURCE_DB_INSTANCE_IDENTIFIER in $PRIMARY_REGION." >&2
+                  exit 1
+                fi
+
+                echo "Selected latest available source snapshot: $SOURCE_SNAPSHOT_IDENTIFIER"
+              fi
+
               SOURCE_STATUS=$(get_snapshot_status "$PRIMARY_REGION" "$SOURCE_SNAPSHOT_IDENTIFIER")
 
               if [[ "$SOURCE_STATUS" != "available" ]]; then
