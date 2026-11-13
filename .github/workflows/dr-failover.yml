@@ -23,6 +23,26 @@ on:
         type: boolean
         default: true
 
+      trigger_source:
+        description: 'What triggered disaster recovery'
+        required: true
+        type: string
+
+      alarm_name:
+        description: 'CloudWatch alarm name'
+        required: true
+        type: string
+
+      source_region:
+        description: 'Primary AWS region'
+        required: true
+        type: string
+
+      recovery_region:
+        description: 'Recovery AWS region'
+        required: true
+        type: string
+
 permissions:
   id-token: write
   contents: read
