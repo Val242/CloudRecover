@@ -171,7 +171,7 @@ module "lambda_iam" {
 module "lambda_trigger" {
   source = "../modules/lambda"
 
-   providers = {
+  providers = {
     aws = aws.virginia
   }
 
