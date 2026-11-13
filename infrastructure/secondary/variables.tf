@@ -351,6 +351,16 @@ variable "github_ref" {
   default     = "main"
 }
 
+variable "lambda_s3_bucket" {
+  description = "S3 bucket containing the Lambda deployment package"
+  type        = string
+}
+
+variable "lambda_s3_key" {
+  description = "S3 object key for the Lambda deployment package"
+  type        = string
+}
+
 # ------------------------------------------------------------
 # Primary SNS topic
 # ------------------------------------------------------------

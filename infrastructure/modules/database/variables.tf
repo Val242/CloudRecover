@@ -13,7 +13,7 @@ variable "engine" {
 variable "engine_version" {
   description = "The engine version"
   type        = string
-  default     = "16.10"
+  default     = "16.11"
 }
 
 variable "rds_security_group_id" {

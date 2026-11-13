@@ -1,0 +1,17 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-east-1:568740659610:cloudrecover-route53-health-alerts:test",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "test-message-001",
+        "TopicArn": "arn:aws:sns:us-east-1:568740659610:cloudrecover-route53-health-alerts",
+        "Subject": "CloudRecover test alarm",
+        "Message": "{\"AlarmName\":\"cloudrecover-primary-health-alarm\",\"NewStateValue\":\"ALARM\",\"NewStateReason\":\"Manual Lambda integration test\",\"Region\":\"eu-west-1\",\"StateChangeTime\":\"2026-11-13T05:00:00.000+0000\"}",
+        "Timestamp": "2026-11-13T05:00:00.000Z"
+      }
+    }
+  ]
+}

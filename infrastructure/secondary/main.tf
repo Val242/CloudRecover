@@ -171,11 +171,17 @@ module "lambda_iam" {
 module "lambda_trigger" {
   source = "../modules/lambda"
 
+   providers = {
+    aws = aws.virginia
+  }
+
   lambda_execution_role_arn = module.lambda_iam.lambda_execution_role_arn
 
   sns_topic_arn = var.primary_sns_topic_arn
 
   lambda_deployment_package = var.lambda_deployment_package
+  lambda_s3_bucket          = var.lambda_s3_bucket
+  lambda_s3_key             = var.lambda_s3_key
 
   github_owner      = var.github_owner
   github_repository = var.github_repository
