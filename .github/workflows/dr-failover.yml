@@ -109,7 +109,7 @@ jobs:
       TF_VAR_lambda_s3_bucket: cloudrecover-lambda-artifacts
       TF_VAR_lambda_s3_key: recovery-trigger/deployment.zip
       TF_VAR_primary_sns_topic_arn: ${{ secrets.PRIMARY_SNS_TOPIC_ARN }}
-      TF_VAR_route53_hosted_zone_id: ${{ vars.ROUTE53_HOSTED_ZONE_ID }}
+      TF_VAR_route53_hosted_zone_id: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
       TF_VAR_github_secret_arn: ${{ secrets.GITHUB_SECRET_ARN }}
 
     defaults:
