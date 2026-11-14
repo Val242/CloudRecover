@@ -184,10 +184,10 @@ module "database" {
   rds_security_group_id = module.security_groups.rds_security_group_id
 }
 
-# module "database_backup" {
-#   source = "../modules/database-backup"
+module "database_backup" {
+  source = "../modules/database-backup"
 
-#   db_instance_identifier = module.database.db_instance_identifier
-#   db_snapshot_identifier = "${var.project}-${var.environment}-snapshot"
-#   environment            = var.environment
-# }
+  db_instance_identifier = module.database.db_instance_identifier
+  db_snapshot_identifier = "${var.project}-${var.environment}-snapshot"
+  environment            = var.environment
+}

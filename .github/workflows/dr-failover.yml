@@ -99,7 +99,7 @@ jobs:
       PRIVATE_ROUTE_TABLE_1_NAME: cloud-recover-priv-RT-1
       PRIVATE_ROUTE_TABLE_2_NAME: cloud-recover-priv-RT-2
       DATABASE_ROUTE_TABLE_NAME: cloud-recover-db-RT
-      MY_IP: 143.105.152.193/32
+      MY_IP: ${{ vars.MY_IP }}
       KEY_NAME: cloudrecover-primary-bastion-key
       TF_VAR_db_username: ${{ secrets.DB_USERNAME }}
       TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
